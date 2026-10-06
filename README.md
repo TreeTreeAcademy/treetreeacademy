@@ -1,4 +1,4 @@
-# 树树学堂 TreeTree Academy
+# 树儿学院
 
 Mobile-first static site for **treetreeacademy.com** — 小群姐姐 · 听故事复述 weekday briefings.
 
@@ -65,5 +65,8 @@ Membership / auth is **not** built yet — add later when ready.
 
 ## Branding notes
 
-- Soft green / cream palette, large Chinese body text (~18px), line-height ~1.85, max-width ~40rem.
+- Display name: **树儿学院** (Chinese primary). Color circular tree logo in `public/logo.png`.
+- Palette from logo: gold `#fdd100`, lime `#aae013`, mid green `#53bd25`, forest `#00964f`.
+- Footer links **Tree Tree Lab** shop via `public/tree-tree-lab.png` (B&W stamp) — separate from the academy mark.
+- Large Chinese body text (~18px), line-height ~1.85, max-width ~40rem.
 - Footer attributes 小群姐姐讲故事公众号 + 愿闻表达训练思路.

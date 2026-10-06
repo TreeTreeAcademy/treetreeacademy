@@ -2,7 +2,7 @@
   "name": "treetreeacademy",
   "version": "1.0.0",
   "private": true,
-  "description": "TreeTree Academy / 树树学堂 — 小群姐姐听故事复述",
+  "description": "树儿学院 — 小群姐姐听故事复述",
   "scripts": {
     "dev": "next dev",
     "build": "next build",

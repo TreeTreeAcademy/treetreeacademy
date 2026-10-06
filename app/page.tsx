@@ -4,7 +4,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "首页",
   description:
-    "树树学堂 TreeTree Academy — 亲子听故事复述练习。小群姐姐栏目：工作日故事简报。",
+    "树儿学院 — 亲子听故事复述练习。小群姐姐栏目：工作日故事简报。",
 };
 
 export default function HomePage() {
@@ -13,12 +13,18 @@ export default function HomePage() {
   return (
     <>
       <section className="hero">
-        <div className="hero__tree" aria-hidden="true">
-          🌳
+        <div className="hero__brand">
+          <img
+            src="/logo.png"
+            alt=""
+            width={88}
+            height={88}
+            className="hero__logo"
+          />
         </div>
-        <h1>树树学堂</h1>
+        <h1>树儿学院</h1>
         <p className="lead">
-          TreeTree Academy — 给亲子的听故事复述练习园地。每天听一听、问一问、跟一跟，用小小的表达工具，陪孩子把故事讲出来。
+          给亲子的听故事复述练习园地。每天听一听、问一问、跟一跟，用小小的表达工具，陪孩子把故事讲出来。
         </p>
         <div className="cta-row">
           <a href="/xiaoqun" className="btn btn--primary">

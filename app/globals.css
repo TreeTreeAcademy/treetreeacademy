@@ -1,22 +1,29 @@
-/* TreeTree Academy — soft green/cream, Chinese reading-first */
+/* 树儿学院 — palette from circular tree logo (gold / lime / mid / forest) */
 
 :root {
-  --color-bg: #f7f4ec;
+  /* Logo tokens */
+  --color-gold: #fdd100;
+  --color-lime: #aae013;
+  --color-mid-green: #53bd25;
+  --color-forest: #00964f;
+  --color-forest-deep: #007a40;
+
+  --color-bg: #f7f9f0;
   --color-surface: #ffffff;
-  --color-surface-soft: #eef5e8;
-  --color-border: #d4e0c8;
-  --color-text: #1f2a1a;
-  --color-text-muted: #5a6b52;
-  --color-accent: #3d6b3a;
-  --color-accent-hover: #2f542c;
-  --color-accent-soft: #c8dfb8;
-  --color-warm: #c4783a;
-  --color-link: #2d5a28;
+  --color-surface-soft: #eef8d8;
+  --color-border: #cfe6b0;
+  --color-text: #14301f;
+  --color-text-muted: #4a6b52;
+  --color-accent: #00964f;
+  --color-accent-hover: #007a40;
+  --color-accent-soft: #c8ef88;
+  --color-warm: #e6b800;
+  --color-link: #00964f;
   --max-width: 40rem;
   --font-sans: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB",
     "Microsoft YaHei", "WenQuanYi Micro Hei", system-ui, sans-serif;
   --radius: 12px;
-  --shadow: 0 2px 12px rgba(31, 42, 26, 0.06);
+  --shadow: 0 2px 12px rgba(0, 122, 64, 0.08);
 }
 
 *,
@@ -38,8 +45,8 @@ body {
   color: var(--color-text);
   background: var(--color-bg);
   background-image:
-    radial-gradient(ellipse at top left, rgba(200, 223, 184, 0.35), transparent 50%),
-    radial-gradient(ellipse at bottom right, rgba(247, 230, 200, 0.4), transparent 50%);
+    radial-gradient(ellipse at top left, rgba(170, 224, 19, 0.22), transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(253, 209, 0, 0.22), transparent 55%);
   min-height: 100vh;
 }
 
@@ -81,7 +88,9 @@ img {
 
 .site-logo {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.65rem;
   text-decoration: none;
   color: var(--color-text);
   line-height: 1.3;
@@ -91,16 +100,21 @@ img {
   color: var(--color-accent);
 }
 
-.site-logo__en {
-  font-size: 0.7rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-accent);
+.site-logo__mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: block;
+}
+
+.site-logo__text {
+  display: flex;
+  flex-direction: column;
 }
 
 .site-logo__zh {
-  font-size: 1.15rem;
+  font-size: 1.2rem;
   font-weight: 700;
 }
 
@@ -201,9 +215,9 @@ p {
 }
 
 .badge--warm {
-  background: #fdf0e4;
-  color: var(--color-warm);
-  border-color: #f0d4b8;
+  background: #fff8d6;
+  color: #9a7a00;
+  border-color: #f0e08a;
 }
 
 /* —— Cards —— */
@@ -218,7 +232,7 @@ p {
 
 .card:hover {
   border-color: var(--color-accent-soft);
-  box-shadow: 0 4px 16px rgba(61, 107, 58, 0.1);
+  box-shadow: 0 4px 16px rgba(0, 150, 79, 0.12);
 }
 
 .card-link {
@@ -322,9 +336,15 @@ p {
   margin-bottom: 2rem;
 }
 
-.hero__tree {
-  font-size: 2rem;
-  margin-bottom: 0.5rem;
+.hero__brand {
+  margin-bottom: 0.75rem;
+}
+
+.hero__logo {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  display: block;
 }
 
 .note-box {
@@ -446,8 +466,8 @@ p {
 }
 
 .method-note {
-  background: #fdf8f0;
-  border: 1px solid #f0e0c8;
+  background: #fffbec;
+  border: 1px solid #f0e48a;
   border-radius: var(--radius);
   padding: 0.9rem 1.1rem;
   font-size: 0.95rem;
@@ -558,7 +578,7 @@ p {
 .feedback-list li {
   padding: 0.6rem 1rem;
   margin-bottom: 0.4rem;
-  background: #fdf8f0;
+  background: #fffbec;
   border-left: 3px solid var(--color-warm);
   border-radius: 0 8px 8px 0;
   font-size: 0.95rem;
@@ -584,6 +604,35 @@ p {
   text-align: center;
   padding: 3rem 1rem;
   color: var(--color-text-muted);
+}
+
+
+/* —— Footer shop (Tree Tree Lab) —— */
+.site-footer__shop {
+  margin-top: 1.25rem;
+}
+
+.shop-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
+  color: var(--color-text-muted);
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.shop-link:hover {
+  color: var(--color-accent);
+}
+
+.shop-link__logo {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: block;
+  object-fit: contain;
+  background: #fff;
 }
 
 /* —— Mobile tweaks —— */
