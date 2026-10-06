@@ -26,7 +26,7 @@ Open [http://localhost:3000](http://localhost:3000).
 |------|------|
 | `/` | Home — intro + latest episode |
 | `/xiaoqun` | Episode index (newest first) |
-| `/xiaoqun/[slug]` | Episode detail (4 sections) |
+| `/xiaoqun/[slug]` | Episode detail (5 sections) |
 
 Episode 1: `/xiaoqun/2026-10-06-ep1`
 

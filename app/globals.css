@@ -588,6 +588,31 @@ p {
   content: "💬 ";
 }
 
+
+.transcript-note {
+  font-size: 0.9rem;
+  color: var(--color-text-muted);
+  margin: 0 0 0.75rem;
+  line-height: 1.7;
+}
+
+.beat-list {
+  list-style: decimal;
+  padding-left: 1.4rem;
+  margin: 0.5rem 0 0;
+}
+
+.beat-list li {
+  margin-bottom: 0.55rem;
+  padding-left: 0.15rem;
+  line-height: 1.75;
+}
+
+.beat-list li::marker {
+  font-weight: 700;
+  color: var(--color-accent);
+}
+
 .back-link {
   display: inline-block;
   margin-bottom: 1.25rem;

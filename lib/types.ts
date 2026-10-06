@@ -42,6 +42,13 @@ export interface DemoUsage {
   feedback_examples: string[];
 }
 
+/** Distilled parent-facing listening beats — not full book/audio text. */
+export interface StoryTranscript {
+  story_title: string;
+  note?: string; // e.g. 提炼要点·非绘本全文
+  beats: string[]; // ordered listening beats
+}
+
 export interface Episode {
   slug: string;
   episode: number;
@@ -54,4 +61,5 @@ export interface Episode {
   stage: Stage;
   demos: Demo[];
   demo_usage: DemoUsage;
+  transcripts: StoryTranscript[];
 }

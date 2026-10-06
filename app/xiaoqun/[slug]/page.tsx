@@ -59,6 +59,9 @@ export default async function EpisodePage({ params }: PageProps) {
           <li>
             <a href="#demos">四、示范</a>
           </li>
+          <li>
+            <a href="#transcript">五、音频文案要点</a>
+          </li>
         </ul>
       </nav>
 
@@ -189,6 +192,30 @@ export default async function EpisodePage({ params }: PageProps) {
             <li key={i}>{ex}</li>
           ))}
         </ul>
+      </section>
+
+      {/* 五、音频文案要点 */}
+      <section id="transcript" className="section-block">
+        <span className="section-block__num">第五部分</span>
+        <h2>五、音频文案要点</h2>
+        <p className="meta" style={{ marginBottom: "0.75rem" }}>
+          听音频时对照浏览 · 短要点，不是绘本/音频全文
+        </p>
+        <div className="method-note">
+          以下为家长跟听用的情节节拍（约 6–12 条/故事）。标注「提炼要点·非绘本全文」。请以小群姐姐公众号音频与原书为准。
+        </div>
+
+        {ep.transcripts.map((tr) => (
+          <div key={tr.story_title} className="story-block">
+            <h3>《{tr.story_title}》</h3>
+            {tr.note && <p className="transcript-note">{tr.note}</p>}
+            <ol className="beat-list">
+              {tr.beats.map((beat, i) => (
+                <li key={i}>{beat}</li>
+              ))}
+            </ol>
+          </div>
+        ))}
       </section>
     </div>
   );
