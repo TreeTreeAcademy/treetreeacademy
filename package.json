@@ -1,0 +1,22 @@
+{
+  "name": "treetreeacademy",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TreeTree Academy / 树树学堂 — 小群姐姐听故事复述",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "next": "^15.5.27",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "typescript": "^5.8.0"
+  }
+}
