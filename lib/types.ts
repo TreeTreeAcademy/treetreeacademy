@@ -21,6 +21,8 @@ export interface StoryQuestions {
 
 export interface StageOutline {
   now: string;
+  /** Standing rule: every retelling covers 问题→办法→结果, at every stage. */
+  core_rule?: string;
   next_4_weeks: string;
   after_stage1: string;
   tools_this_week: string;
@@ -31,6 +33,21 @@ export interface Stage {
   success_criteria: string;
   outline: StageOutline;
 }
+
+/**
+ * 复述核心: every story's retelling must touch 遇到什么问题 / 想到什么办法 / 结果怎样.
+ * For a poetic story with no real conflict, set `labels` (e.g. 想做什么/发生了什么/最后怎样).
+ */
+export interface StoryCore {
+  story_title: string;
+  problem: string;
+  solution: string;
+  result: string;
+  labels?: [string, string, string];
+}
+
+export const CORE_RULE_DEFAULT =
+  "不论哪个阶段，复述都要说清「遇到什么问题→想到什么办法→结果怎样」。";
 
 export interface Demo {
   story_title: string;
@@ -58,6 +75,8 @@ export interface Episode {
   stories: Story[];
   questions_method: string;
   questions: StoryQuestions[];
+  /** 复述核心 per story (fill for every episode). */
+  cores?: StoryCore[];
   stage: Stage;
   demos: Demo[];
   demo_usage: DemoUsage;

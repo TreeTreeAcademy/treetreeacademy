@@ -5,6 +5,7 @@ import {
   themeLabels,
 } from "@/lib/episodes";
 import type { Metadata } from "next";
+import { CORE_RULE_DEFAULT } from "@/lib/types";
 import { notFound } from "next/navigation";
 
 interface PageProps {
@@ -109,9 +110,31 @@ export default async function EpisodePage({ params }: PageProps) {
         </p>
         <div className="method-note">{ep.questions_method}</div>
 
-        {ep.questions.map((sq) => (
+        {ep.questions.map((sq) => {
+          const core = ep.cores?.find((c) => c.story_title === sq.story_title);
+          const labels = core?.labels ?? ["问题", "办法", "结果"];
+          return (
           <div key={sq.story_title} className="story-block">
             <h3>《{sq.story_title}》</h3>
+            {core && (
+              <div className="core-card">
+                <div className="core-card__label">复述核心</div>
+                <dl className="core-card__list">
+                  <div className="core-card__row">
+                    <dt>{labels[0]}</dt>
+                    <dd>{core.problem}</dd>
+                  </div>
+                  <div className="core-card__row">
+                    <dt>{labels[1]}</dt>
+                    <dd>{core.solution}</dd>
+                  </div>
+                  <div className="core-card__row">
+                    <dt>{labels[2]}</dt>
+                    <dd>{core.result}</dd>
+                  </div>
+                </dl>
+              </div>
+            )}
             <ol className="q-list">
               {sq.items.map((item, i) => (
                 <li key={i}>
@@ -130,7 +153,8 @@ export default async function EpisodePage({ params }: PageProps) {
               </div>
             )}
           </div>
-        ))}
+          );
+        })}
       </section>
 
       {/* 三、当前阶段 */}
@@ -148,6 +172,10 @@ export default async function EpisodePage({ params }: PageProps) {
           <li>
             <strong>现在</strong>
             {ep.stage.outline.now}
+          </li>
+          <li>
+            <strong>复述核心</strong>
+            {ep.stage.outline.core_rule ?? CORE_RULE_DEFAULT}
           </li>
           <li>
             <strong>接下来 4 周</strong>

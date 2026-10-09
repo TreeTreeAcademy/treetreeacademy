@@ -682,3 +682,49 @@ p {
     padding: 1.1rem 1.15rem;
   }
 }
+
+/* 复述核心 card (section 二) */
+.core-card {
+  background: var(--color-surface-soft);
+  border: 1px solid var(--color-border);
+  border-left: 4px solid var(--color-forest);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.85rem;
+  margin: 0.5rem 0 0.9rem;
+}
+.core-card__label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--color-forest-deep);
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+}
+.core-card__list {
+  margin: 0;
+}
+.core-card__row {
+  display: flex;
+  gap: 0.6rem;
+  align-items: baseline;
+  padding: 0.2rem 0;
+}
+.core-card__row + .core-card__row {
+  border-top: 1px dashed var(--color-border);
+}
+.core-card__row dt {
+  flex: 0 0 auto;
+  min-width: 3em;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #fff;
+  background: var(--color-mid-green);
+  border-radius: 999px;
+  padding: 0.05rem 0.5rem;
+  text-align: center;
+}
+.core-card__row dd {
+  margin: 0;
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: var(--color-text);
+}
