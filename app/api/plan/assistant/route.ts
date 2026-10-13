@@ -23,7 +23,7 @@ export async function POST(req: Request) {
 
 // PATCH: assistant edits stored state. Body: { set: { <topKey>: value } } (shallow merge of top-level keys),
 // optional { listA: [...] } shortcut to replace lists.A.items. Other keys are left untouched.
-const PATCHABLE = new Set(["task", "lists", "content", "archive", "reviews", "ideas", "sos"]);
+const PATCHABLE = new Set(["task", "lists", "content", "archive", "reviews", "ideas", "sos", "ladder", "cfocus"]);
 export async function PATCH(req: Request) {
   if (!assistantOk(req)) return json({ error: "unauthorized" }, 401);
   if (!kvConfig()) return json({ error: "尚未设置" }, 503);
