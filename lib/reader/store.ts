@@ -69,6 +69,13 @@ export async function kvMGet(keys: string[]): Promise<(string | null)[]> {
   const m = await local();
   return keys.map((k) => alive(m.get(k))?.v ?? null);
 }
+/** Which keys exist (without fetching values — page images are large and Upstash caps a response at ~10 MB). */
+export async function kvExists(keys: string[]): Promise<boolean[]> {
+  if (!keys.length) return [];
+  if (kvConfig()) return (await upstash(keys.map((k) => ["EXISTS", k]))).map((x) => Number(x) > 0);
+  const m = await local();
+  return keys.map((k) => !!alive(m.get(k)));
+}
 export async function kvSet(k: string, v: string, ttlSec?: number) {
   if (kvConfig()) { await upstash([ttlSec ? ["SET", k, v, "EX", ttlSec] : ["SET", k, v]]); return; }
   (await local()).set(k, { v, exp: ttlSec ? Date.now() + ttlSec * 1000 : undefined }); persist();

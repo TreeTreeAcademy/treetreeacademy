@@ -277,6 +277,7 @@ async function upload(man: Man, id: string, title: string, titleZh: string, src:
   await Promise.all([worker(), worker(), worker()]);
   const r = await api("PUT", `/${encodeURIComponent(USER)}/${id}`, JSON.stringify({ source: src, imgStore: imgMode, imgBytes: upBytes }), "application/json");
   if (!r.ok) throw new Stop(6, `保存书本失败：HTTP ${r.status} ${r.j?.error || ""}`);
+  if (Number(r.j.images) < N) throw new Stop(6, `书已保存，但网站只认到 ${r.j.images}/${N} 张图片——请重新运行同一个命令。`);
   log(`✅ 已导入到 ${USER} 的账号：《${title}》${titleZh ? ` ${titleZh}` : ""} · ${r.j.pages} 页 · ${r.j.images} 张图 · 登录后在「学习来源」里能看到。`);
 }
 

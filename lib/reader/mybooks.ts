@@ -5,7 +5,7 @@
 //   reader:mybook:<user>:<id>             source JSON (page img -> /api/reader/mybooks/<id>/img/<n>)
 //   reader:mybookimg:<user>:<id>:<n>      KV image: {"t":"image/jpeg","b":"<base64>"}  OR  {"blob":"<private blob url>","t":...}
 // Images are only ever served through the authenticated route, and only to the book's owner.
-import { kvDel, kvGet, kvMGet, kvSet } from "@/lib/reader/store";
+import { kvDel, kvExists, kvGet, kvMGet, kvSet } from "@/lib/reader/store";
 import { blobConfigured, safeUser } from "@/lib/reader/blob";
 
 export const BOOK_ID_RE = /^[a-z0-9][a-z0-9_-]{2,40}$/;
@@ -65,7 +65,7 @@ export async function getImage(user: string, id: string, n: number): Promise<{ b
 export async function saveBook(user: string, src: any, extra: { imgStore: BookItem["imgStore"]; imgBytes: number }) {
   const id = String(src.id);
   const pages = src.pages as any[];
-  const have = await kvMGet(pages.map((p) => kImg(user, id, Number(p.n))));
+  const have = await kvExists(pages.map((p) => kImg(user, id, Number(p.n))));
   pages.forEach((p, i) => { p.img = have[i] ? imgUrl(id, Number(p.n)) : null; });
   const clean = {
     id, title: String(src.title || "未命名").slice(0, 100), titleZh: String(src.titleZh || "").slice(0, 100), kind: "book",
@@ -90,8 +90,16 @@ export async function saveBook(user: string, src: any, extra: { imgStore: BookIt
 
 async function dropImages(user: string, id: string, from: number, to: number) {
   const keys = Array.from({ length: Math.max(0, to - from + 1) }, (_, i) => kImg(user, id, from + i));
-  const recs: (string | null)[] = [];
-  for (let i = 0; i < keys.length; i += 200) recs.push(...(await kvMGet(keys.slice(i, i + 200))));
+  // which exist first (cheap), then read only those, a few at a time (KV-stored images are ~400 KB each)
+  const ex: boolean[] = [];
+  for (let i = 0; i < keys.length; i += 200) ex.push(...(await kvExists(keys.slice(i, i + 200))));
+  const recs: (string | null)[] = keys.map(() => null);
+  const idx = keys.map((_, i) => i).filter((i) => ex[i]);
+  for (let i = 0; i < idx.length; i += 8) {
+    const part = idx.slice(i, i + 8);
+    const vals = await kvMGet(part.map((j) => keys[j]));
+    part.forEach((j, q) => { recs[j] = vals[q] ?? (ex[j] ? "{}" : null); });
+  }
   const blobs = recs.map((r) => { try { return r ? JSON.parse(r).blob : null; } catch { return null; } }).filter(Boolean) as string[];
   if (blobs.length && blobConfigured()) { try { const { del } = await import("@vercel/blob"); await del(blobs); } catch { /* best effort */ } }
   const live = keys.filter((_, i) => recs[i]);
