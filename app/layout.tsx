@@ -53,7 +53,7 @@ export default function RootLayout({
             <nav className="site-nav" aria-label="主导航">
               <a href="/">首页</a>
               <a href="/xiaoqun">小群姐姐</a>
-              <a href="/reader" className="site-nav__learn">登录学习</a>
+              <a href="/reader" className="site-nav__learn">树儿读读乐</a>
             </nav>
           </div>
         </header>

@@ -31,7 +31,7 @@ export default function HomePage() {
             进入小群姐姐栏目
           </a>
           <a href="/reader" className="btn btn--ghost">
-            登录学习
+            树儿读读乐
           </a>
         </div>
       </section>
