@@ -30,6 +30,9 @@ export default function HomePage() {
           <a href="/xiaoqun" className="btn btn--primary">
             进入小群姐姐栏目
           </a>
+          <a href="/reader" className="btn btn--ghost">
+            登录学习
+          </a>
         </div>
       </section>
 

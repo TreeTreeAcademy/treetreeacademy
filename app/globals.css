@@ -728,3 +728,58 @@ p {
   line-height: 1.6;
   color: var(--color-text);
 }
+
+/* ---- 登录学习 (Tree Tree Reader login) ---- */
+.site-nav a.site-nav__learn {
+  color: #fff;
+  background: var(--color-accent);
+  font-weight: 600;
+}
+.site-nav a.site-nav__learn:hover {
+  color: #fff;
+  background: var(--color-accent-hover);
+}
+.reader-login {
+  max-width: 26rem;
+  margin: 1.5rem auto 3rem;
+  text-align: center;
+}
+.reader-login__form {
+  display: grid;
+  gap: 0.9rem;
+  text-align: left;
+  margin-top: 1.25rem;
+}
+.reader-login__form label {
+  display: grid;
+  gap: 0.3rem;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+.reader-login .hero__logo {
+  display: block;
+  margin: 0 auto;
+}
+.reader-login__form input {
+  box-sizing: border-box;
+  width: 100%;
+  font: inherit;
+  font-size: 1.05rem;
+  padding: 0.7rem 0.85rem;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-bg);
+}
+.reader-login__form input:focus {
+  outline: 2px solid var(--color-lime);
+  border-color: var(--color-accent);
+}
+.reader-login__err {
+  color: #b42318;
+  margin: 0;
+  font-size: 0.9rem;
+}
+.reader-login__form .btn {
+  width: 100%;
+  font-size: 1.05rem;
+}

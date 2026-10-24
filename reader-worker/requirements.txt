@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+python-multipart
+pillow
+numpy
+rapidocr_onnxruntime
+faster-whisper
+av>=11,<16
+# optional: pytesseract (OCR_ENGINE=tesseract)
+cmudict
