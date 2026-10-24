@@ -133,14 +133,18 @@ export async function generateJSON<T = any>(parts: Part[], schema: object, o: Ge
       let data: T;
       try { data = JSON.parse(text); } catch { throw new AIError(502, "bad_output", ZH.bad); }
       working = model;
+      const u = raw.json?.usageMetadata || {};
+      console.info(`[reader/ai] ok model=${model} ms=${Date.now() - t0} retries=${retries} in=${u.promptTokenCount ?? "?"} out=${u.candidatesTokenCount ?? "?"}`);
       return { data, model, ms: Date.now() - t0, usage: raw.json?.usageMetadata, retries };
     }
     const msg = String(raw.json?.error?.message || raw.text).slice(0, 300);
     if (raw.status === 404 || (raw.status === 400 && /not found|not supported|unsupported model|is not available|no longer available/i.test(msg))) {
+      console.warn(`[reader/ai] fallback: ${model} unavailable (${raw.status})`);
       skip.set(model, now + 3600_000); last = new AIError(503, "model_unavailable", ZH.model, `${model}: ${msg}`); continue;
     }
     if (raw.status === 429) {
       const q = quotaInfo(raw.json);
+      if (q.daily) console.warn(`[reader/ai] fallback: ${model} daily quota (${q.ids})`);
       if (q.daily) { skip.set(model, now + 3600_000); last = new AIError(429, "daily_quota", ZH.daily, `${model}: ${q.ids}`); continue; }
       throw new AIError(429, "rate_limited", ZH.busy, `${model}: ${msg}`);
     }
