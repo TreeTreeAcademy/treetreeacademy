@@ -739,6 +739,18 @@ p {
   color: #fff;
   background: var(--color-accent-hover);
 }
+/* keep header labels on one line (the extra 树儿读读乐 link made them wrap per character on phones) */
+.site-logo__zh,
+.site-nav a {
+  white-space: nowrap;
+}
+@media (max-width: 480px) {
+  .site-header__inner { gap: 0.5rem; }
+  .site-nav { gap: 0.25rem; }
+  .site-nav a { padding: 0.3rem 0.4rem; font-size: 0.9rem; }
+  .site-logo { gap: 0.45rem; }
+  .site-logo__zh { font-size: 1.05rem; }
+}
 .reader-login {
   max-width: 26rem;
   margin: 1.5rem auto 3rem;
