@@ -38,3 +38,4 @@ next-env.d.ts
 # Tree Tree Reader: book scans/text are copyrighted — never commit them to this public repo
 /public/reader/books/
 /reader-assets/
+/.reader-data/

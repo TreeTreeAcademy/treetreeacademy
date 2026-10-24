@@ -21,7 +21,7 @@ if(TTS.ok){TTS.pick();speechSynthesis.onvoiceschanged=()=>TTS.pick()}
 const say=(t,r,cb)=>TTS.speak(t,r,cb);
 
 /* ---------- user + storage ---------- */
-let USER='demo';
+let USER='demo',ME={};
 const KEY=()=>'tt2.'+USER+'.state';
 let S;
 function blank(){return{v:2,words:{},log:{},session:{},enrich:{},updatedAt:0}}
@@ -40,10 +40,12 @@ const IDB={db:null,open(){return this.db||(this.db=new Promise((ok,no)=>{const r
   all(){return this.tx('readonly',s=>s.getAll())},get(id){return this.tx('readonly',s=>s.get(id))},put(o){return this.tx('readwrite',s=>s.put(o))},del(id){return this.tx('readwrite',s=>s.delete(id))}};
 
 /* ---------- sources ---------- */
-let CATALOG=null;const BOOKS={};
+let CATALOG=null,SHARED=null;const BOOKS={};
+async function sharedList(){if(SHARED)return SHARED;if(!CFG.sharedEndpoint)return SHARED=[];try{const r=await fetch(CFG.sharedEndpoint,{credentials:'same-origin'});SHARED=r.ok?await r.json():[]}catch(e){SHARED=[]}return SHARED}
 async function catalog(){if(CATALOG)return CATALOG;try{const r=await fetch(CFG.booksBase+'catalog.json',{credentials:'same-origin'});if(r.status===401)return goLogin();CATALOG=r.ok?await r.json():[]}catch(e){CATALOG=[]}return CATALOG}
 async function getSource(id){if(BOOKS[id])return BOOKS[id];let b;
   if(id.startsWith('u:')){b=await IDB.get(id.slice(2));if(!b)return null;b.uid='u:'+b.id}
+  else if(id.startsWith('g:')){const r=await fetch(CFG.sharedEndpoint+'/'+encodeURIComponent(id.slice(2)),{credentials:'same-origin'});if(r.status===401)return goLogin();if(!r.ok)return null;b=await r.json();b.uid=id}
   else{const r=await fetch(CFG.booksBase+id+'/book.json',{credentials:'same-origin'});if(r.status===401)return goLogin();if(!r.ok)return null;b=await r.json();b.uid=id;
     b.pages.forEach(p=>{if(p.img&&!/^(data:|https?:|\/)/.test(p.img))p.img=CFG.booksBase+id+'/'+p.img})}
   b.wmap={};b.words.forEach(w=>b.wmap[w.w]=w);return BOOKS[id]=b}
@@ -53,9 +55,14 @@ function goLogin(){if(CFG.loginUrl)location.href=CFG.loginUrl;return null}
 const shortZh=z=>{z=String(z||'').replace(/^[a-z]+\.\s*/,'').split(/[；;，,]/)[0].replace(/（.*?）|\(.*?\)/g,'').trim();return z.length>9?z.slice(0,9)+'…':z};
 function content(w){const rec=S.words[w]||{};const L=LEX[w]||S.enrich[w];
   return{w,zh:(L&&L.zh)||rec.zh||'',us:(LEX[w]&&LEX[w].us)||rec.us||'',phrases:(L&&L.phrases)||[],scene:L&&L.scene,dlg:L&&L.dlg,curated:!!LEX[w],ai:!LEX[w]&&!!S.enrich[w]}}
+let ENRICH_WARNED=0;
 async function enrichMissing(list){const need=list.filter(w=>!LEX[w]&&!S.enrich[w]);if(!need.length||!CFG.enrichEndpoint)return;
-  try{const r=await fetch(CFG.enrichEndpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({words:need.map(w=>({w,sentence:(S.words[w]||{}).en||''}))})});
-    if(!r.ok)return;const j=await r.json();for(const [k,v] of Object.entries(j.entries||{}))if(v&&v.dlg&&v.dlg.length>=3){if(v.scene)v.scene[0]='ai';S.enrich[k]=v}save()}catch(e){}}
+  for(let i=0;i<need.length;i+=10){const part=need.slice(i,i+10);
+    try{const r=await fetch(CFG.enrichEndpoint,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({words:part.map(w=>({w,sentence:(S.words[w]||{}).en||''}))})});
+      const j=await r.json().catch(()=>({}));
+      for(const [k,v] of Object.entries(j.entries||{}))if(v&&v.dlg&&v.dlg.length>=3){if(v.scene)v.scene[0]='ai';S.enrich[k]=v}save();
+      if((!r.ok||j.partial)&&j.detail&&Date.now()-ENRICH_WARNED>60000){ENRICH_WARNED=Date.now();toast('🤖 '+esc(j.detail),4500)}
+      if(!r.ok)return}catch(e){return}}}
 
 /* clickable English: every word speaks */
 function speakable(en,hi){let out='',last=0;en.replace(TOK,(m,i)=>{out+=esc(en.slice(last,i));const h=hi&&hiMatch(m,hi);out+=`<span class="w${h?' hl':''}" data-say="${esc(m)}">${esc(m)}</span>`;last=i+m.length;return m});return out+esc(en.slice(last))}
@@ -85,7 +92,7 @@ window.addEventListener('hashchange',route);
 document.addEventListener('click',e=>{const s=e.target.closest('[data-say]');if(s&&!s.closest('[data-act]')){e.stopPropagation();say(s.dataset.say)}},true);
 
 /* ================= HOME: learning sources ================= */
-async function viewHome(){nav('src');const cat=await catalog();if(cat===null)return;const ups=(await IDB.all().catch(()=>[])).sort((a,b)=>b.createdAt-a.createdAt);
+async function viewHome(){nav('src');const cat=await catalog();if(cat===null)return;const shared=await sharedList();const ups=(await IDB.all().catch(()=>[])).sort((a,b)=>b.createdAt-a.createdAt);
   const W=Object.values(S.words),cnt=st=>W.filter(x=>x.st===st).length;
   const bySrc={};W.forEach(x=>bySrc[x.src]=(bySrc[x.src]||0)+1);
   const kindIco={photo:'📷',audio:'🎙',text:'📝'};
@@ -94,6 +101,7 @@ async function viewHome(){nav('src');const cat=await catalog();if(cat===null)ret
     <div class="stats"><a class="pill" href="#/learn" style="text-decoration:none"><b>${cnt('queued')}</b>待学习</a><a class="pill" href="#/review" style="text-decoration:none"><b>${cnt('learned')}</b>待复习</a><a class="pill" href="#/vault" style="text-decoration:none"><b>${cnt('mastered')}</b>成就仓</a></div></section>
   <h2>📚 学习来源</h2><div class="shelf">
   ${cat.map(b=>`<a class="src" href="#/src/${b.id}"><img class="cv" src="${esc(CFG.booksBase+b.cover)}" alt="" loading="lazy"><span class="kind">绘本</span><div class="t"><b class="en">${esc(b.title)}</b><small>${esc(b.titleZh)} · ${b.pages} 页 · ${b.sentences} 句</small><small>⭐ 已收藏 ${bySrc[b.id]||0} 词</small></div></a>`).join('')}
+  ${shared.map(g=>`<a class="src" href="#/src/g:${esc(g.id)}">${g.cover?`<img class="cv" src="${esc(g.cover)}" alt="" loading="lazy">`:`<div class="cv">${kindIco[g.kind]||'📝'}</div>`}<span class="kind">共享</span><div class="t"><b class="en">${esc(g.title)}</b><small>${g.pages} 页 · ${g.sentences} 句</small><small>⭐ 已收藏 ${bySrc['g:'+g.id]||0} 词</small></div></a>`).join('')}
   ${ups.map(u=>`<a class="src" href="#/src/u:${u.id}">${u.pages[0]&&u.pages[0].img?`<img class="cv" src="${u.pages[0].img}" alt="">`:`<div class="cv">${kindIco[u.kind]||'📝'}</div>`}<span class="kind">${u.kind==='audio'?'录音':u.kind==='photo'?'照片':'文字'}</span><div class="t"><b>${esc(u.title)}</b><small>${new Date(u.createdAt).toLocaleDateString('zh-CN')} · ${u.sentences.length} 句</small><small>⭐ 已收藏 ${bySrc['u:'+u.id]||0} 词</small></div></a>`).join('')}
   <a class="src add" href="#/upload"><span style="font-size:2.6rem">📥</span>上传照片 / 截屏 / 录音<small>自动变成可点击的学习来源</small></a></div>`}
 
@@ -119,7 +127,7 @@ async function viewSource(id,pg){if(cleanup){cleanup();cleanup=null}nav('src');a
   const hasImg=PREF.img&&page.img;
   app.innerHTML=`<div class="shead"><a class="btn sec sm" href="#/">← 来源</a><h1 class="en">${esc(b.title)}</h1>${b.titleZh?`<span class="zh">${esc(b.titleZh)}</span>`:''}</div>
   <div class="tools"><button class="toggle${PREF.img?' on':''}" data-act="timg">🖼 原图</button><button class="toggle${PREF.zh?' on':''}" data-act="tzh">中 中文对照</button>
-   <button class="toggle" data-act="pall">▶ 朗读本页</button><span class="muted" style="font-size:.85rem">点任意单词 = 美音朗读 + ⭐收藏（再点取消）</span></div>
+   <button class="toggle" data-act="pall">▶ 朗读本页</button>${ME.admin&&b.uid.startsWith('u:')?'<button class="toggle" data-act="pub">📢 发布给所有家庭</button>':''}${ME.admin&&b.uid.startsWith('g:')?'<button class="toggle" data-act="unpub">🗑 取消发布</button>':''}<span class="muted" style="font-size:.85rem">点任意单词 = 美音朗读 + ⭐收藏（再点取消）</span></div>
   ${P>1?`<div class="pager">${b.pages.map(p=>`<a href="#/src/${encodeURIComponent(b.uid)}/${p.n}" class="${p.n===pg?'on':''}${collectedPages.has(p.n)?' has':''}">${p.n}</a>`).join('')}</div>`:''}
   <div class="readwrap${hasImg?'':' noimg'}"><div><div class="text" lang="en">${text}</div>
    <div class="legend"><span><i style="background:var(--gold)"></i>已收藏·待学习</span><span><i style="background:var(--accent-soft)"></i>已学·待复习</span><span><i style="border-bottom:3px solid var(--forest)"></i>已进成就仓</span></div>
@@ -135,7 +143,9 @@ async function viewSource(id,pg){if(cleanup){cleanup();cleanup=null}nav('src');a
       if(k==='timg'){PREF.img=!PREF.img;localStorage.setItem('tt2.img',PREF.img?'1':'0');return viewSource(id,pg)}
       if(k==='tzh'){PREF.zh=!PREF.zh;localStorage.setItem('tt2.zh',PREF.zh?'1':'0');return viewSource(id,pg)}
       if(k==='pall'){let i=0;const next=()=>{if(i<sents.length){const s=sents[i++];playSent(b,s.id,next)}};next();return}
-      if(k==='learn'){location.hash='#/learn';return}}
+      if(k==='learn'){location.hash='#/learn';return}
+      if(k==='pub'){publish(b);return}
+      if(k==='unpub'){unpublish(b.uid.slice(2));return}}
     const w=e.target.closest('[data-w]');if(!w)return;
     const lm=w.dataset.w;const sid=w.dataset.sid!=null?+w.dataset.sid:(b.wmap[lm]?b.wmap[lm].ex:page.s[0]);
     say(w.dataset.sid!=null?w.textContent:lm);toggleCollect(b,lm,sid,pg);
@@ -304,58 +314,104 @@ function vdock(){const d=$('#vdock');if(!d)return;const n=VSEL.size;
    <button class="btn sm" data-act="tolearn" ${n?'':'disabled'}>🎓 进入学习区</button><button class="btn sm gold" data-act="toreview" ${n?'':'disabled'}>🔁 进入复习区</button><button class="btn sec sm" data-act="stay">🏆 留在成就仓</button>`}
 
 /* ================= UPLOAD ================= */
+const BIG=()=>(CFG.maxUploadMB||4.2)*1048576;
+const blobUser=()=>String(USER).toLowerCase().replace(/[^a-z0-9_-]/g,'_').slice(0,40)||'user';
+function limitNote(){const l=ME.limits&&ME.limits.uploads;if(!l)return'';return `<p class="muted" id="limn" style="margin-bottom:0">今天还可以上传 <b>${Math.max(0,l.max-l.used)}</b> 次${ME.ai&&ME.ai.model?` · AI：${esc(ME.ai.model)}`:''}</p>`}
+async function refreshMe(){if(!CFG.meEndpoint)return;try{const r=await fetch(CFG.meEndpoint,{credentials:'same-origin'});if(r.ok)ME=await r.json()}catch(e){}}
+async function apiErr(r){const j=await r.json().catch(()=>({}));if(r.status===401){goLogin();return new Error('请重新登录')}return new Error(j.detail||j.error||('HTTP '+r.status))}
+function loadScript(src){return new Promise((ok,no)=>{if(window.TTBlob)return ok();const el=document.createElement('script');el.src=src;el.onload=()=>ok();el.onerror=()=>no(new Error('无法加载上传组件'));document.head.appendChild(el)})}
+async function parseFile(blob,name,title){
+  if(!CFG.parseEndpoint)throw new Error('未配置解析服务（parseEndpoint）。');let r;
+  if(blob.size>BIG()){
+    if(!ME.blob||!CFG.blobUploadEndpoint)throw new Error(`文件太大（${(blob.size/1048576).toFixed(1)} MB）。网站直接上传上限约 ${CFG.maxUploadMB||4.2} MB，请剪短录音或压缩后再试。`);
+    await loadScript(CFG.blobClientUrl);const safe=(name||'file').replace(/[^\w.\-]/g,'_').slice(-60);
+    let up;try{up=await window.TTBlob.upload(`reader-uploads/${blobUser()}/${Date.now()}-${safe}`,blob,{access:'private',handleUploadUrl:CFG.blobUploadEndpoint,contentType:blob.type||undefined})}
+    catch(e){throw new Error('大文件上传失败：'+(e.message||e))}
+    r=await fetch(CFG.parseEndpoint,{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({blobUrl:up.url,contentType:blob.type||up.contentType,name,title})});
+  }else{const fd=new FormData();fd.append('file',blob,name);fd.append('title',title||'');r=await fetch(CFG.parseEndpoint,{method:'POST',body:fd,credentials:'same-origin'})}
+  if(!r.ok)throw await apiErr(r);return r.json()}
+async function parseTextApi(text,title,kind){const fd=new FormData();fd.append('text',text);fd.append('title',title||'');fd.append('kind',kind||'text');
+  const r=await fetch(CFG.parseEndpoint,{method:'POST',body:fd,credentials:'same-origin'});if(!r.ok)throw await apiErr(r);return r.json()}
+function thumb(blob){return new Promise(ok=>{const im=new Image();im.onload=()=>{const H=Math.min(1200,im.height),W=Math.round(im.width*H/im.height);const c=document.createElement('canvas');c.width=W;c.height=H;
+  c.getContext('2d').drawImage(im,0,0,W,H);URL.revokeObjectURL(im.src);ok({img:c.toDataURL('image/jpeg',.72),w:W,h:H})};im.onerror=()=>ok(null);im.src=URL.createObjectURL(blob)})}
+/* several photos -> one multi-page source */
+function mergeSources(parts,title){const out={id:parts[0].id,title,kind:'photo',createdAt:Date.now(),pages:[],sentences:[],words:[]};const W={};
+  parts.forEach(src=>{const off=out.sentences.length,pmap={};
+    src.pages.forEach(pg=>{const n=out.pages.length+1;pmap[pg.n]=n;out.pages.push({n,img:pg.img||null,w:pg.w||0,h:pg.h||0,s:pg.s.map(i=>i+off)})});
+    src.sentences.forEach(x=>out.sentences.push({...x,id:x.id+off,p:pmap[x.p]||x.p}));
+    src.words.forEach(w=>{const pages=w.pages.map(p=>pmap[p]||p),x=W[w.w];
+      if(!x)W[w.w]={...w,pages,ex:w.ex+off,forms:[...(w.forms||[])]};
+      else{x.freq+=w.freq;pages.forEach(p=>{if(!x.pages.includes(p))x.pages.push(p)});(w.forms||[]).forEach(f=>{if(!x.forms.includes(f))x.forms.push(f)});if(!x.zh&&w.zh)x.zh=w.zh}})});
+  out.words=Object.values(W).sort((a,b)=>b.freq-a.freq||a.w.localeCompare(b.w));
+  const ai=parts.map(x=>x._ai).filter(Boolean);if(ai.length)out._ai={model:ai[ai.length-1].model,ms:ai.reduce((t,x)=>t+(x.ms||0),0)};return out}
 function viewUpload(){nav('upload');
   app.innerHTML=`<div class="zone-h"><span class="tag">📥 上传学习来源</span></div>
   <div class="card"><p style="margin-top:0">拍一张英文绘本/作业的照片、截一张屏，或者录一段英文，系统会自动识别成 <b>可以点击学习的原文</b>。</p>
   <input type="text" id="utitle" placeholder="给它起个名字（可选），例如：Unit 3 课文 / 睡前故事录音">
   <div class="upgrid">
-   <label class="upbtn"><span>📷</span>拍照 / 选择照片<small>绘本、课本、作业单</small><input type="file" accept="image/*" capture="environment" id="fPhoto" hidden></label>
-   <label class="upbtn"><span>🖼</span>上传截屏图片<small>PNG / JPG 截图</small><input type="file" accept="image/*" id="fShot" hidden></label>
+   <label class="upbtn"><span>📷</span>拍照<small>绘本、课本、作业单</small><input type="file" accept="image/*" capture="environment" id="fPhoto" hidden></label>
+   <label class="upbtn"><span>🖼</span>选择照片 / 截屏<small>可以一次选多页，合成一本</small><input type="file" accept="image/*" id="fShot" multiple hidden></label>
    <label class="upbtn"><span>🎧</span>上传录音文件<small>m4a / mp3 / wav</small><input type="file" accept="audio/*,.m4a,.mp3,.wav,.webm" id="fAudio" hidden></label>
    <button class="upbtn rec" id="recBtn" type="button"><span>🎙</span><b id="recL">现场录音</b><small>点一下开始，再点结束</small></button>
   </div>
-  <details><summary class="muted">✏️ 或者直接粘贴英文文字</summary><textarea id="utext" placeholder="Paste English text here…"></textarea><div class="actions"><button class="btn" id="textGo">生成学习来源</button></div></details></div>
+  <details><summary class="muted">✏️ 或者直接粘贴英文文字</summary><textarea id="utext" placeholder="Paste English text here…"></textarea><div class="actions"><button class="btn" id="textGo">生成学习来源</button></div></details>${limitNote()}</div>
   <div id="ures" style="margin-top:14px"></div>`;
-  const go=async(blob,name,kind)=>{const res=$('#ures');
-    if(!CFG.parseEndpoint){res.innerHTML='<div class="card">⚠️ 未配置解析服务（parseEndpoint）。</div>';return}
-    if(blob&&blob.size>(CFG.maxUploadMB||4.2)*1048576){res.innerHTML=`<div class="card">⚠️ 文件太大（${(blob.size/1048576).toFixed(1)} MB）。网站上传上限约 ${CFG.maxUploadMB||4.2} MB，请剪短录音或压缩后再试。</div>`;return}
-    res.innerHTML=`<div class="card center"><span class="spin"></span> 正在${kind==='audio'?'识别语音':kind==='text'?'整理文字':'识别图片文字'}…（可能需要十几秒）</div>`;
-    const fd=new FormData();if(blob)fd.append('file',blob,name);else{fd.append('text',$('#utext').value);fd.append('kind','text')}fd.append('title',$('#utitle').value.trim());
-    try{const r=await fetch(CFG.parseEndpoint,{method:'POST',body:fd,credentials:'same-origin'});if(r.status===401)return goLogin();
-      const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.detail||j.error||('HTTP '+r.status));
-      await IDB.put(j);delete BOOKS['u:'+j.id];showResult(j)}
-    catch(e){res.innerHTML=`<div class="card">😵 解析失败：${esc(e.message)}<p class="muted">请确认照片清晰、文字是英文；录音尽量安静。</p></div>`}};
-  const img=async f=>{if(!f)return;const b=await shrink(f);go(b,'photo.jpg','photo')};
-  $('#fPhoto').onchange=e=>img(e.target.files[0]);$('#fShot').onchange=e=>img(e.target.files[0]);
-  $('#fAudio').onchange=e=>{const f=e.target.files[0];if(f)go(f,f.name,'audio')};
-  $('#textGo').onclick=()=>{if($('#utext').value.trim())go(null,null,'text')};
+  const res=$('#ures'),title=()=>$('#utitle').value.trim();let busy=false;
+  const run=async(fn,label)=>{if(busy)return;busy=true;res.innerHTML=`<div class="card center"><span class="spin"></span> <span id="prog">${label}</span>（可能需要十几秒）</div>`;
+    try{const j=await fn();await IDB.put(j);delete BOOKS['u:'+j.id];showResult(j)}
+    catch(e){res.innerHTML=`<div class="card">😵 解析失败：${esc(e.message)}<p class="muted">请确认照片清晰、文字是英文；录音尽量安静。</p></div>`}
+    finally{busy=false;await refreshMe();const n=$('#limn');if(n)n.outerHTML=limitNote()}};
+  const photo=async(f,t)=>{const b=await shrink(f);const j=await parseFile(b,'photo.jpg',t);const th=await thumb(b);if(th&&j.pages[0]&&!j.pages[0].img)Object.assign(j.pages[0],th);return j};
+  const imgs=files=>{files=[...files].filter(Boolean);if(!files.length)return;
+    run(async()=>{const parts=[];for(let i=0;i<files.length;i++){const p=$('#prog');if(p)p.textContent=files.length>1?`正在识别第 ${i+1} / ${files.length} 页…`:'正在识别图片文字…';
+        parts.push(await photo(files[i],title()))}
+      
+      return parts.length>1?mergeSources(parts,title()||parts[0].title):parts[0]},'正在识别图片文字…')};
+  $('#fPhoto').onchange=e=>imgs(e.target.files);$('#fShot').onchange=e=>imgs(e.target.files);
+  $('#fAudio').onchange=e=>{const f=e.target.files[0];if(f)run(()=>parseFile(f,f.name,title()),'正在识别语音…')};
+  $('#textGo').onclick=()=>{const t=$('#utext').value;if(t.trim())run(()=>parseTextApi(t,title(),'text'),'正在整理文字…')};
   let rec=null,chunks=[];
   $('#recBtn').onclick=async()=>{if(rec){rec.stop();return}
-    try{const st=await navigator.mediaDevices.getUserMedia({audio:true});rec=new MediaRecorder(st);chunks=[];rec.ondataavailable=e=>chunks.push(e.data);
-      rec.onstop=()=>{st.getTracks().forEach(t=>t.stop());const type=rec.mimeType||'audio/webm';rec=null;$('#recBtn').classList.remove('on');$('#recL').textContent='现场录音';
-        go(new Blob(chunks,{type}),'record.'+(type.includes('mp4')?'m4a':'webm'),'audio')};
-      rec.start();$('#recBtn').classList.add('on');$('#recL').textContent='● 录音中…点击结束'}catch(e){toast('无法使用麦克风：'+e.message)}};
+    try{const st=await navigator.mediaDevices.getUserMedia({audio:true});
+      const mt=['audio/webm;codecs=opus','audio/mp4','audio/webm'].find(t=>window.MediaRecorder&&MediaRecorder.isTypeSupported&&MediaRecorder.isTypeSupported(t));
+      rec=new MediaRecorder(st,mt?{mimeType:mt,audioBitsPerSecond:32000}:undefined);chunks=[];rec.ondataavailable=e=>chunks.push(e.data);
+      rec.onstop=()=>{st.getTracks().forEach(t=>t.stop());const type=(rec.mimeType||'audio/webm').split(';')[0];rec=null;$('#recBtn').classList.remove('on');$('#recL').textContent='现场录音';
+        const b=new Blob(chunks,{type});run(()=>parseFile(b,'record.'+(type.includes('mp4')?'m4a':'webm'),title()),'正在识别语音…')};
+      rec.start();$('#recBtn').classList.add('on');$('#recL').textContent='● 录音中…点击结束'}catch(e){toast('无法使用麦克风：'+esc(e.message))}};
   cleanup=()=>{if(rec)rec.stop()}}
 function shrink(f){return new Promise(ok=>{const im=new Image();im.onload=()=>{const M=2000,s=Math.min(1,M/Math.max(im.width,im.height));const c=document.createElement('canvas');c.width=im.width*s|0;c.height=im.height*s|0;
   c.getContext('2d').drawImage(im,0,0,c.width,c.height);c.toBlob(b=>ok(b||f),'image/jpeg',.85);URL.revokeObjectURL(im.src)};im.onerror=()=>ok(f);im.src=URL.createObjectURL(f)})}
-function showResult(j){const res=$('#ures');
+function showResult(j){const res=$('#ures');const ai=j._ai;delete j._ai;
   res.innerHTML=`<div class="card"><h2 style="margin-top:0">✅ 已生成学习来源：${esc(j.title)}</h2>
-   <p class="muted">识别出 ${j.sentences.length} 个句子、${j.words.length} 个单词。点击下面任意单词可以听美音。</p>
+   <p class="muted">识别出 ${j.pages.length>1?j.pages.length+' 页、':''}${j.sentences.length} 个句子、${j.words.length} 个单词。点击下面任意单词可以听美音。${ai&&ai.model?`<br><small>AI：${esc(ai.model)} · ${(ai.ms/1000).toFixed(1)} 秒</small>`:''}</p>
    <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start">${j.pages[0]&&j.pages[0].img?`<img src="${j.pages[0].img}" alt="" style="width:180px;border-radius:12px;border:1px solid var(--border)">`:''}
-   <div class="text" style="flex:1;min-width:240px" lang="en">${j.sentences.map(s=>`<span class="sent"><button class="sp" data-say="${esc(s.en)}">▶</button>${speakable(s.en)}</span>${s.zh?`<span class="szh">${esc(s.zh)}</span>`:' '}`).join('')}</div></div>
-   <div class="actions"><a class="btn" href="#/src/u:${j.id}">📖 打开原文，开始点词学习 →</a><button class="btn sec" id="fix">✏️ 校对文字</button><button class="btn sec" id="delsrc">🗑 删除</button></div>
+   <div class="text" style="flex:1;min-width:240px" lang="en">${j.sentences.slice(0,60).map(s=>`<span class="sent"><button class="sp" data-say="${esc(s.en)}">▶</button>${speakable(s.en)}</span>${s.zh?`<span class="szh">${esc(s.zh)}</span>`:' '}`).join('')}${j.sentences.length>60?'<p class="muted">……</p>':''}</div></div>
+   <div class="actions"><a class="btn" href="#/src/u:${j.id}">📖 打开原文，开始点词学习 →</a>${j.pages.length===1?'<button class="btn sec" id="fix">✏️ 校对文字</button>':''}${ME.admin?'<button class="btn sec" id="pubsrc">📢 发布给所有家庭</button>':''}<button class="btn sec" id="delsrc">🗑 删除</button></div>
    <div id="fixbox" class="hidden"><textarea id="fixt">${esc(groupText(j))}</textarea><div class="actions"><button class="btn" id="fixgo">用校对后的文字重新生成</button></div></div></div>`;
-  $('#fix').onclick=()=>$('#fixbox').classList.toggle('hidden');
+  if($('#fix'))$('#fix').onclick=()=>$('#fixbox').classList.toggle('hidden');
+  if($('#pubsrc'))$('#pubsrc').onclick=()=>publish(j);
   $('#delsrc').onclick=async()=>{await IDB.del(j.id);res.innerHTML='<div class="card">已删除。</div>'};
-  $('#fixgo').onclick=async()=>{const fd=new FormData();fd.append('text',$('#fixt').value);fd.append('title',j.title);fd.append('kind',j.kind);
-    res.insertAdjacentHTML('afterbegin','<p class="center"><span class="spin"></span></p>');
-    const r=await fetch(CFG.parseEndpoint,{method:'POST',body:fd,credentials:'same-origin'});const n=await r.json();if(!r.ok){toast('失败：'+(n.detail||r.status));return}
+  $('#fixgo').onclick=async()=>{res.insertAdjacentHTML('afterbegin','<p class="center"><span class="spin"></span></p>');
+    let n;try{n=await parseTextApi($('#fixt').value,j.title,j.kind)}catch(e){toast('失败：'+esc(e.message),4000);const sp=$('#ures > p.center');if(sp)sp.remove();return}
     n.id=j.id;n.createdAt=j.createdAt;if(j.pages[0]&&j.pages[0].img)n.pages[0].img=j.pages[0].img,n.pages[0].w=j.pages[0].w,n.pages[0].h=j.pages[0].h;await IDB.put(n);delete BOOKS['u:'+j.id];showResult(n)}}
 function groupText(j){let out=[];j.sentences.forEach(s=>{if(s.para&&out.length)out.push('\n\n');else if(out.length)out.push(' ');out.push(s.en)});return out.join('')}
 
+/* ================= PUBLISH (admins) ================= */
+async function publish(b){
+  if(!CFG.sharedEndpoint)return;
+  if(!confirm(`把「${b.title}」发布给所有家庭？\n\n请确认你有权分享这些内容（书籍扫描件可能受版权保护）。`))return;
+  const id=('u'+b.id).toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40);
+  try{toast('📢 正在发布…',60000);
+    for(const p of b.pages){if(p.img&&p.img.startsWith('data:')){const r=await fetch(`${CFG.sharedEndpoint}/${id}/img/${p.n}`,{method:'PUT',body:p.img,credentials:'same-origin'});if(!r.ok)throw await apiErr(r)}}
+    const {uid,wmap,...src}=b;const r=await fetch(CFG.sharedEndpoint,{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({...src,id})});
+    if(!r.ok)throw await apiErr(r);SHARED=null;toast('📢 已发布给所有家庭（首页「共享」）',3000)}catch(e){toast('发布失败：'+esc(e.message),4500)}}
+async function unpublish(id){if(!confirm('取消发布后，其他家庭将看不到它。确定吗？'))return;
+  const r=await fetch(CFG.sharedEndpoint+'/'+encodeURIComponent(id),{method:'DELETE',credentials:'same-origin'});
+  if(r.ok){SHARED=null;delete BOOKS['g:'+id];toast('已取消发布');location.hash='#/'}else toast('失败：'+esc((await apiErr(r)).message),4000)}
+
 /* ================= boot ================= */
 async function boot(){
-  if(CFG.meEndpoint){try{const r=await fetch(CFG.meEndpoint,{credentials:'same-origin'});if(r.status===401)return goLogin();if(r.ok){const j=await r.json();USER=j.user||USER}}catch(e){}}
+  if(CFG.meEndpoint){try{const r=await fetch(CFG.meEndpoint,{credentials:'same-origin'});if(r.status===401)return goLogin();if(r.ok){const j=await r.json();ME=j;USER=j.user||USER}}catch(e){}}
   load();await pullServer();badges();
   $('#user').innerHTML=`<span>👤 ${esc(USER)}</span>${CFG.logoutUrl?`<button id="logout">退出</button>`:''}`;
   if(CFG.logoutUrl)$('#logout').onclick=async()=>{await fetch(CFG.logoutUrl,{method:'POST'}).catch(()=>{});location.href=CFG.loginUrl||'/'};

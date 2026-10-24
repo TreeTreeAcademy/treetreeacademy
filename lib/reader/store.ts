@@ -1,0 +1,70 @@
+// Small key-value store for the reader: Upstash / Vercel KV REST when configured
+// (KV_REST_API_URL + KV_REST_API_TOKEN, or UPSTASH_REDIS_REST_URL + UPSTASH_REDIS_REST_TOKEN),
+// otherwise a local JSON file (dev; READER_LOCAL_STORE, default .reader-data/store.json) or memory (on Vercel).
+import { promises as fs } from "fs";
+import path from "path";
+import { kvConfig } from "@/lib/plan/server";
+
+type Cmd = (string | number)[];
+
+async function upstash(cmds: Cmd[]): Promise<any[]> {
+  const kv = kvConfig()!;
+  const r = await fetch(`${kv.url}/pipeline`, {
+    method: "POST", headers: { Authorization: `Bearer ${kv.token}`, "Content-Type": "application/json" },
+    body: JSON.stringify(cmds.map((c) => c.map(String))), cache: "no-store",
+  });
+  if (!r.ok) throw new Error(`kv ${r.status}`);
+  const j = (await r.json()) as { result?: any; error?: string }[];
+  return j.map((x) => (x.error ? null : x.result));
+}
+
+// ---- local fallback ----
+type Rec = { v: string; exp?: number };
+let mem: Map<string, Rec> | null = null;
+let dirty: NodeJS.Timeout | null = null;
+const localFile = () => (process.env.VERCEL ? "" : process.env.READER_LOCAL_STORE || path.join(process.cwd(), ".reader-data", "store.json"));
+async function local(): Promise<Map<string, Rec>> {
+  if (mem) return mem;
+  mem = new Map();
+  const f = localFile();
+  if (f) { try { mem = new Map(Object.entries(JSON.parse(await fs.readFile(f, "utf8")))); } catch { /* new store */ } }
+  return mem;
+}
+function persist() {
+  const f = localFile();
+  if (!f || dirty) return;
+  dirty = setTimeout(async () => {
+    dirty = null;
+    try { await fs.mkdir(path.dirname(f), { recursive: true }); await fs.writeFile(f, JSON.stringify(Object.fromEntries(mem!))); } catch { /* ignore */ }
+  }, 200);
+}
+const alive = (r?: Rec) => (r && (!r.exp || r.exp > Date.now()) ? r : undefined);
+
+export const storeKind = () => (kvConfig() ? "upstash" : localFile() ? "file" : "memory");
+
+export async function kvGet(k: string): Promise<string | null> {
+  if (kvConfig()) return (await upstash([["GET", k]]))[0] ?? null;
+  return alive((await local()).get(k))?.v ?? null;
+}
+export async function kvMGet(keys: string[]): Promise<(string | null)[]> {
+  if (!keys.length) return [];
+  if (kvConfig()) return ((await upstash([["MGET", ...keys]]))[0] || []).map((x: any) => x ?? null);
+  const m = await local();
+  return keys.map((k) => alive(m.get(k))?.v ?? null);
+}
+export async function kvSet(k: string, v: string, ttlSec?: number) {
+  if (kvConfig()) { await upstash([ttlSec ? ["SET", k, v, "EX", ttlSec] : ["SET", k, v]]); return; }
+  (await local()).set(k, { v, exp: ttlSec ? Date.now() + ttlSec * 1000 : undefined }); persist();
+}
+export async function kvDel(...keys: string[]) {
+  if (!keys.length) return;
+  if (kvConfig()) { await upstash([["DEL", ...keys]]); return; }
+  const m = await local(); keys.forEach((k) => m.delete(k)); persist();
+}
+export async function kvIncr(k: string, by: number, ttlSec: number): Promise<number> {
+  if (kvConfig()) { const [n] = await upstash([["INCRBY", k, by], ["EXPIRE", k, ttlSec, "NX"]]); return Number(n); }
+  const m = await local(); const cur = alive(m.get(k));
+  const n = Number(cur?.v || 0) + by;
+  m.set(k, { v: String(n), exp: cur?.exp || Date.now() + ttlSec * 1000 }); persist();
+  return n;
+}
