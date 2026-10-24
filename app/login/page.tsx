@@ -3,13 +3,13 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { READER_COOKIE, verifySession } from "@/lib/reader/session";
 
-export const metadata: Metadata = { title: "登录学习", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: { absolute: "登录 · 树儿读读乐 TreeTree Read & Grow · 树儿学院" }, applicationName: "树儿读读乐", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 const ERR: Record<string, string> = {
   "1": "账号或密码不正确，请再试一次。",
   wait: "尝试次数太多，请 10 分钟后再试。",
-  config: "学习中心还没有配置账号（READER_USERS / READER_SESSION_SECRET）。",
+  config: "树儿读读乐还没有配置账号（READER_USERS / READER_SESSION_SECRET）。",
 };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; err?: string }> }) {
@@ -20,8 +20,9 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   return (
     <section className="reader-login">
       <img src="/logo.png" alt="" width={84} height={84} className="hero__logo" />
-      <h1>登录学习</h1>
-      <p className="lead">树儿学院 · 学习中心：读原文、点单词、学习 → 复习 → 成就仓。账号由树儿学院分配。</p>
+      <h1>树儿读读乐</h1>
+      <p className="meta">TreeTree Read &amp; Grow · 树儿学院</p>
+      <p className="lead">登录后开始：读原文、点单词、学习 → 复习 → 成就仓。账号由树儿学院分配。</p>
       <form method="post" action="/api/reader/login" className="card reader-login__form">
         <input type="hidden" name="next" value={next} />
         <label>

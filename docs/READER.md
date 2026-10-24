@@ -1,4 +1,4 @@
-# 树儿学院 · 学习中心 (Tree Tree Reader v3 – Gemini)
+# 树儿读读乐 TreeTree Read & Grow — 树儿学院 reader (v3 – Gemini)
 
 Login-only English learning app at **/reader** (entry: 导航「登录学习」).
 

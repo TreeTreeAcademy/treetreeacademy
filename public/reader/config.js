@@ -1,4 +1,4 @@
-// Tree Tree Reader v2 runtime config — PUBLIC file, NO SECRETS.
+// 树儿读读乐 TreeTree Read & Grow runtime config — PUBLIC file, NO SECRETS.
 // Inside treetreeacademy.com everything goes through auth-protected Next.js routes under /api/reader/*.
 window.TT_CONFIG = {
   booksBase: "/api/reader/books/",        // catalog.json + <id>/book.json + <id>/img/* (private store, proxied after login)

@@ -1,4 +1,4 @@
-/* 树儿学院 Tree Tree Reader v2 — Source → 学习区 → 复习区 → 成就仓 */
+/* 树儿读读乐 TreeTree Read & Grow (树儿学院) — Source → 学习区 → 复习区 → 成就仓 */
 (()=>{
 'use strict';
 const CFG=window.TT_CONFIG||{}, LEX=window.TT_LEX||{};
@@ -96,7 +96,7 @@ async function viewHome(){nav('src');const cat=await catalog();if(cat===null)ret
   const W=Object.values(S.words),cnt=st=>W.filter(x=>x.st===st).length;
   const bySrc={};W.forEach(x=>bySrc[x.src]=(bySrc[x.src]||0)+1);
   const kindIco={photo:'📷',audio:'🎙',text:'📝'};
-  app.innerHTML=`<section class="hero"><img src="assets/logo.png" alt=""><div><h1>欢迎来到树儿学院学习中心</h1>
+  app.innerHTML=`<section class="hero"><img src="assets/logo.png" alt=""><div><h1>欢迎来到树儿读读乐</h1>
     <p>打开一个学习来源，读原文，点一下你想学的单词 ⭐ → 学习区 → 复习区 → 成就仓</p></div>
     <div class="stats"><a class="pill" href="#/learn" style="text-decoration:none"><b>${cnt('queued')}</b>待学习</a><a class="pill" href="#/review" style="text-decoration:none"><b>${cnt('learned')}</b>待复习</a><a class="pill" href="#/vault" style="text-decoration:none"><b>${cnt('mastered')}</b>成就仓</a></div></section>
   <h2>📚 学习来源</h2><div class="shelf">
