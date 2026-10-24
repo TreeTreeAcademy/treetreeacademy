@@ -109,7 +109,7 @@ async function viewHome(){nav('src');const cat=await catalog();if(cat===null)ret
   <a class="src add" href="#/upload"><span style="font-size:2.6rem">📥</span>上传照片 / 截屏 / 录音<small>自动变成可点击的学习来源</small></a></div>`}
 
 /* ================= SOURCE: full original text ================= */
-const PREF={img:localStorage.getItem('tt2.img')!=='0',zh:localStorage.getItem('tt2.zh')==='1'};
+const PREF={img:localStorage.getItem('tt2.img')!=='0',zh:localStorage.getItem('tt3.zh')!=='0'}; // Chinese under each sentence: on by default
 async function viewSource(id,pg){if(cleanup){cleanup();cleanup=null}nav('src');app.innerHTML='<p class="center"><span class="spin"></span> 正在打开原文…</p>';
   const b=await getSource(id);if(!b){app.innerHTML='<div class="empty"><div class="e">🔍</div>找不到这个学习来源 <a href="#/">返回</a></div>';return}
   const P=b.pages.length;pg=Math.min(Math.max(1,pg),P);const page=b.pages[pg-1];
@@ -117,7 +117,7 @@ async function viewSource(id,pg){if(cleanup){cleanup();cleanup=null}nav('src');a
   const sents=page.s.map(i=>b.sentences[i]);
   // group into headings + paragraphs
   const blocks=[];let cur=null;
-  for(const s of sents){const head=s.head||(!/[.!?…"”)]$/.test(s.en.trim())&&s.en.split(' ').length<=8);
+  for(const s of sents){const head=typeof s.head==='boolean'?s.head:(!/[.!?…"”)]$/.test(s.en.trim())&&s.en.split(' ').length<=8);
     if(head){blocks.push({h:true,s:[s]});cur=null}else{if(!cur||s.para||(s.zhBlock||'')!==(cur.s[0].zhBlock||'')){cur={h:false,s:[]};blocks.push(cur)}cur.s.push(s)}}
   const blockZh=bl=>{if(!PREF.zh||bl.s.some(s=>s.zh))return '';const z=bl.s[0].zhBlock;return z?`<span class="szh" style="margin-left:0">${esc(z.replace(/^[^：]{1,14}：/,''))}</span>`:''};
   const sentHTML=s=>{let o='',last=0;const en=s.en;
@@ -129,7 +129,7 @@ async function viewSource(id,pg){if(cleanup){cleanup();cleanup=null}nav('src');a
   const pw=[...new Set(sents.flatMap(s=>s.t.map(t=>t[2])))].filter(w=>w.length>2||w==='I');
   const hasImg=PREF.img&&page.img;
   app.innerHTML=`<div class="shead"><a class="btn sec sm" href="#/">← 来源</a><h1 class="en">${esc(b.title)}</h1>${b.titleZh?`<span class="zh">${esc(b.titleZh)}</span>`:''}</div>
-  <div class="tools"><button class="toggle${PREF.img?' on':''}" data-act="timg">🖼 原图</button><button class="toggle${PREF.zh?' on':''}" data-act="tzh">中 中文对照</button>
+  <div class="tools"><button class="toggle${PREF.img?' on':''}" data-act="timg">🖼 原图</button><button class="toggle${PREF.zh?' on':''}" data-act="tzh" aria-pressed="${PREF.zh}" title="${PREF.zh?'隐藏中文翻译':'显示中文翻译'}">中 ${PREF.zh?'中文对照':'显示中文'}</button>
    <button class="toggle" data-act="pall">▶ 朗读本页</button>${ME.admin&&(b.uid.startsWith('u:')||b.uid.startsWith('m:'))?'<button class="toggle" data-act="pub">📢 发布给所有家庭</button>':''}${b.uid.startsWith('m:')?'<button class="toggle" data-act="delbook">🗑 删除这本书</button>':''}${ME.admin&&b.uid.startsWith('g:')?'<button class="toggle" data-act="unpub">🗑 取消发布</button>':''}<span class="muted" style="font-size:.85rem">点任意单词 = 美音朗读 + ⭐收藏（再点取消）</span></div>
   ${P>1?`<div class="pager">${b.pages.map(p=>`<a href="#/src/${encodeURIComponent(b.uid)}/${p.n}" class="${p.n===pg?'on':''}${collectedPages.has(p.n)?' has':''}">${p.n}</a>`).join('')}</div>`:''}
   <div class="readwrap${hasImg?'':' noimg'}"><div><div class="text" lang="en">${text}</div>
@@ -144,7 +144,7 @@ async function viewSource(id,pg){if(cleanup){cleanup();cleanup=null}nav('src');a
     if(a){const k=a.dataset.act;
       if(k==='ps'){playSent(b,+a.dataset.sid);return}
       if(k==='timg'){PREF.img=!PREF.img;localStorage.setItem('tt2.img',PREF.img?'1':'0');return viewSource(id,pg)}
-      if(k==='tzh'){PREF.zh=!PREF.zh;localStorage.setItem('tt2.zh',PREF.zh?'1':'0');return viewSource(id,pg)}
+      if(k==='tzh'){PREF.zh=!PREF.zh;localStorage.setItem('tt3.zh',PREF.zh?'1':'0');return viewSource(id,pg)}
       if(k==='pall'){let i=0;const next=()=>{if(i<sents.length){const s=sents[i++];playSent(b,s.id,next)}};next();return}
       if(k==='learn'){location.hash='#/learn';return}
       if(k==='pub'){publish(b);return}
