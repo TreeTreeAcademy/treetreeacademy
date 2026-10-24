@@ -7,6 +7,7 @@ window.TT_CONFIG = {
   progressEndpoint: "/api/reader/progress", // optional server sync (KV); falls back to localStorage only
   meEndpoint: "/api/reader/me",           // -> {user, admin, ai, blob, limits}
   sharedEndpoint: "/api/reader/shared",   // sources an admin published to all families
+  mybooksEndpoint: "/api/reader/mybooks", // whole books imported for this reader (KV + private Blob images)
   blobUploadEndpoint: "/api/reader/upload", // Vercel Blob client-upload token route (files > maxUploadMB)
   blobClientUrl: "/reader/vendor/blob-client.js",
   logoutUrl: "/api/reader/logout",

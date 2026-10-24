@@ -56,7 +56,8 @@ export type ParseMeta = { model: string; ms: number; retries: number; usage?: an
 
 const INLINE_MAX = Number(process.env.GEMINI_INLINE_MAX_MB || 14) * 1048576; // base64 grows ~33%; request limit is 20 MB
 
-export async function parseMedia(bytes: Uint8Array, mime: string, kind: "photo" | "audio", title: string) {
+/** One Gemini call: image/audio -> raw paragraphs (en+zh) + glossary (no source building). */
+export async function readMedia(bytes: Uint8Array, mime: string, kind: "photo" | "audio") {
   let parts: Part[];
   let fileName: string | null = null;
   if (bytes.length <= INLINE_MAX) {
@@ -69,15 +70,31 @@ export async function parseMedia(bytes: Uint8Array, mime: string, kind: "photo" 
   parts.push({ text: kind === "audio" ? AUDIO : PHOTO });
   try {
     const r = await generateJSON<MediaOut>(parts, MEDIA_SCHEMA, { maxOutputTokens: 16384, temperature: 0.1, timeoutMs: kind === "audio" ? 240000 : 90000 });
-    const paras = (r.data.paragraphs || []).map((p) => (p.sentences || []).filter((s) => s && s.en && s.en.trim()));
-    if (!r.data.has_english && !paras.some((p) => p.length)) throw new AIError(422, "no_english", kind === "audio" ? "没有听到清楚的英文，请在安静的地方再录一次。" : "没有识别到英文文字，请拍清楚一点再试。");
-    const src = await buildSource(title || (kind === "audio" ? "我的录音" : "我的照片"), kind, [{ paras }], r.data.glossary || []);
-    if (!src.sentences.length) throw new AIError(422, "no_english", "没有识别到英文文字。");
-    if (!title && r.data.title) src.title = r.data.title.slice(0, 80);
-    return { src, meta: { model: r.model, ms: r.ms, retries: r.retries, usage: r.usage } as ParseMeta };
+    const paras = (r.data.paragraphs || []).map((p) => (p.sentences || []).filter((s) => s && s.en && s.en.trim())).filter((p) => p.length);
+    return { hasEnglish: !!r.data.has_english && paras.length > 0, title: r.data.title || "", paras, glossary: r.data.glossary || [],
+      meta: { model: r.model, ms: r.ms, retries: r.retries, usage: r.usage } as ParseMeta };
   } finally {
     if (fileName) await deleteFile(fileName);
   }
+}
+
+export async function parseMedia(bytes: Uint8Array, mime: string, kind: "photo" | "audio", title: string) {
+  const m = await readMedia(bytes, mime, kind);
+  if (!m.hasEnglish) throw new AIError(422, "no_english", kind === "audio" ? "没有听到清楚的英文，请在安静的地方再录一次。" : "没有识别到英文文字，请拍清楚一点再试。");
+  const src = await buildSource(title || (kind === "audio" ? "我的录音" : "我的照片"), kind, [{ paras: m.paras }], m.glossary);
+  if (!src.sentences.length) throw new AIError(422, "no_english", "没有识别到英文文字。");
+  if (!title && m.title) src.title = m.title.slice(0, 80);
+  return { src, meta: m.meta };
+}
+
+/** One Gemini call: already-split English sentences (e.g. from a PDF text layer) -> Chinese translations + glossary. */
+export async function translateSentences(sentences: string[]) {
+  const r = await generateJSON<{ translations: string[]; glossary: Gloss[] }>(
+    [{ text: `${COMMON}\nTranslate each of these sentences (keep the same order and count) and build the glossary.\n${JSON.stringify(sentences)}` }],
+    TEXT_SCHEMA, { maxOutputTokens: 32768, temperature: 0.1, timeoutMs: 180000 });
+  const zh = r.data.translations || [];
+  return { zh: sentences.map((_, i) => (typeof zh[i] === "string" ? zh[i] : null)), glossary: r.data.glossary || [],
+    meta: { model: r.model, ms: r.ms, retries: r.retries, usage: r.usage } as ParseMeta };
 }
 
 export async function parseText(text: string, title: string, kind: string) {

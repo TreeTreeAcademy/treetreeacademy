@@ -20,15 +20,18 @@ async function upstash(cmds: Cmd[]): Promise<any[]> {
 
 // ---- local fallback ----
 type Rec = { v: string; exp?: number };
-let mem: Map<string, Rec> | null = null;
+// shared via globalThis: in `next dev` every route bundle gets its own module copy, and separate maps would
+// overwrite each other's writes to the store file
+const G = globalThis as any;
+let mem: Map<string, Rec> | null = G.__readerLocalMem || null;
 let dirty: NodeJS.Timeout | null = null;
 const localFile = () => (process.env.VERCEL ? "" : process.env.READER_LOCAL_STORE || path.join(process.cwd(), ".reader-data", "store.json"));
 async function local(): Promise<Map<string, Rec>> {
-  if (mem) return mem;
-  mem = new Map();
+  if (G.__readerLocalMem) return (mem = G.__readerLocalMem);
+  mem = G.__readerLocalMem = new Map();
   const f = localFile();
-  if (f) { try { mem = new Map(Object.entries(JSON.parse(await fs.readFile(f, "utf8")))); } catch { /* new store */ } }
-  return mem;
+  if (f) { try { for (const [k, v] of Object.entries(JSON.parse(await fs.readFile(f, "utf8")))) mem!.set(k, v as Rec); } catch { /* new store */ } }
+  return mem!;
 }
 function persist() {
   const f = localFile();
@@ -39,6 +42,20 @@ function persist() {
   }, 200);
 }
 const alive = (r?: Rec) => (r && (!r.exp || r.exp > Date.now()) ? r : undefined);
+
+/** Best-effort size of the store (keys + used bytes when the backend reports it) — the importer checks headroom. */
+export async function kvStats(): Promise<{ keys: number | null; usedBytes: number | null }> {
+  try {
+    if (kvConfig()) {
+      const [n, info] = await upstash([["DBSIZE"], ["INFO"]]);
+      const m = typeof info === "string" ? info.match(/used_memory:(\d+)/) : null;
+      return { keys: typeof n === "number" ? n : null, usedBytes: m ? Number(m[1]) : null };
+    }
+    const mem = await local();
+    let b = 0; for (const [k, r] of mem) b += k.length + r.v.length;
+    return { keys: mem.size, usedBytes: b };
+  } catch { return { keys: null, usedBytes: null }; }
+}
 
 export const storeKind = () => (kvConfig() ? "upstash" : localFile() ? "file" : "memory");
 

@@ -79,3 +79,29 @@ export READER_ASSETS_DIR=/path/to/treetree-reader-assets/books READER_ADMINS=dem
 export GEMINI_API_KEY=…            # from your shell / secret manager – never commit it
 npm run build && npm start   # open http://localhost:3000/reader
 ```
+
+## Whole-book import (box-side, `scripts/book-import/`)
+
+Typical source: a whole book scanned with a phone (Google Drive scan → PDF, usually with an OCR text layer) and shared as a Drive link.
+
+```
+scripts/book-import/import_book.sh <drive-link | book.pdf> --user <reader> [--title "…"] [--title-zh 中文]
+    [--pages 1-6] [--dry-run] [--rate 12] [--mode auto|text|ocr]
+    [--crop-art] [--reuse prepared/book.json [--page-offset auto|N]] [--kv-budget-mb 150]
+```
+
+1. Download (gdown for public links; for private files download with the Drive connector to
+   `$BOOK_IMPORT_DIR/_downloads/<fileId>.pdf` and re-run with the same link).
+2. `extract.py` (PyMuPDF): page JPEGs (≤2000 px / 900 KB for Blob, ≤1200 px / 300 KB copy for KV) + text layer.
+   `--crop-art` keeps only the largest embedded image (our bilingual PDFs: the English page; the Chinese strip is dropped).
+3. `import-book.ts` (tsx): good English text layer → batched translation; other pages → Gemini one page per call,
+   paced (`--rate`), 429 back-off, clean stop on the daily quota (exit 3) — re-run resumes from `WORK/pages/`.
+   `--reuse` takes sentences/Chinese/words from an existing hand-checked book.json instead (no Gemini calls).
+4. Upload through `/api/reader-import/*` (Bearer `READER_IMPORT_TOKEN`, outside the cookie middleware):
+   images → private Vercel Blob when `BLOB_READ_WRITE_TOKEN` is set, else KV (checked against `--kv-budget-mb`);
+   then the book JSON → KV `reader:mybook:<user>:<id>`. Books are private to that reader ("我的书"); images are served by
+   `/api/reader/mybooks/<id>/img/<n>` to the owner only.
+
+Work files (`/workspace/book-imports/<sha>/`) contain copyrighted pages — never commit them.
+Local test: `READER_LOCAL_STORE=/tmp/x.json`, `node scripts/book-import/mock-gemini.mjs 3999` + `GEMINI_BASE_URL=http://127.0.0.1:3999/v1beta`,
+`node scripts/book-import/mock-blob.mjs 3998` + `VERCEL_BLOB_API_URL=http://127.0.0.1:3998 BLOB_READ_WRITE_TOKEN=vercel_blob_rw_mock_x`.

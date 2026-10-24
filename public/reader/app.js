@@ -40,11 +40,13 @@ const IDB={db:null,open(){return this.db||(this.db=new Promise((ok,no)=>{const r
   all(){return this.tx('readonly',s=>s.getAll())},get(id){return this.tx('readonly',s=>s.get(id))},put(o){return this.tx('readwrite',s=>s.put(o))},del(id){return this.tx('readwrite',s=>s.delete(id))}};
 
 /* ---------- sources ---------- */
-let CATALOG=null,SHARED=null;const BOOKS={};
+let CATALOG=null,SHARED=null,MINE=null;const BOOKS={};
+async function myBooks(){if(MINE)return MINE;if(!CFG.mybooksEndpoint)return MINE=[];try{const r=await fetch(CFG.mybooksEndpoint,{credentials:'same-origin'});MINE=r.ok?await r.json():[]}catch(e){MINE=[]}return MINE}
 async function sharedList(){if(SHARED)return SHARED;if(!CFG.sharedEndpoint)return SHARED=[];try{const r=await fetch(CFG.sharedEndpoint,{credentials:'same-origin'});SHARED=r.ok?await r.json():[]}catch(e){SHARED=[]}return SHARED}
 async function catalog(){if(CATALOG)return CATALOG;try{const r=await fetch(CFG.booksBase+'catalog.json',{credentials:'same-origin'});if(r.status===401)return goLogin();CATALOG=r.ok?await r.json():[]}catch(e){CATALOG=[]}return CATALOG}
 async function getSource(id){if(BOOKS[id])return BOOKS[id];let b;
   if(id.startsWith('u:')){b=await IDB.get(id.slice(2));if(!b)return null;b.uid='u:'+b.id}
+  else if(id.startsWith('m:')){const r=await fetch(CFG.mybooksEndpoint+'/'+encodeURIComponent(id.slice(2)),{credentials:'same-origin'});if(r.status===401)return goLogin();if(!r.ok)return null;b=await r.json();b.uid=id}
   else if(id.startsWith('g:')){const r=await fetch(CFG.sharedEndpoint+'/'+encodeURIComponent(id.slice(2)),{credentials:'same-origin'});if(r.status===401)return goLogin();if(!r.ok)return null;b=await r.json();b.uid=id}
   else{const r=await fetch(CFG.booksBase+id+'/book.json',{credentials:'same-origin'});if(r.status===401)return goLogin();if(!r.ok)return null;b=await r.json();b.uid=id;
     b.pages.forEach(p=>{if(p.img&&!/^(data:|https?:|\/)/.test(p.img))p.img=CFG.booksBase+id+'/'+p.img})}
@@ -92,7 +94,7 @@ window.addEventListener('hashchange',route);
 document.addEventListener('click',e=>{const s=e.target.closest('[data-say]');if(s&&!s.closest('[data-act]')){e.stopPropagation();say(s.dataset.say)}},true);
 
 /* ================= HOME: learning sources ================= */
-async function viewHome(){nav('src');const cat=await catalog();if(cat===null)return;const shared=await sharedList();const ups=(await IDB.all().catch(()=>[])).sort((a,b)=>b.createdAt-a.createdAt);
+async function viewHome(){nav('src');const cat=await catalog();if(cat===null)return;const shared=await sharedList();const mine=await myBooks();const ups=(await IDB.all().catch(()=>[])).sort((a,b)=>b.createdAt-a.createdAt);
   const W=Object.values(S.words),cnt=st=>W.filter(x=>x.st===st).length;
   const bySrc={};W.forEach(x=>bySrc[x.src]=(bySrc[x.src]||0)+1);
   const kindIco={photo:'📷',audio:'🎙',text:'📝'};
@@ -101,6 +103,7 @@ async function viewHome(){nav('src');const cat=await catalog();if(cat===null)ret
     <div class="stats"><a class="pill" href="#/learn" style="text-decoration:none"><b>${cnt('queued')}</b>待学习</a><a class="pill" href="#/review" style="text-decoration:none"><b>${cnt('learned')}</b>待复习</a><a class="pill" href="#/vault" style="text-decoration:none"><b>${cnt('mastered')}</b>成就仓</a></div></section>
   <h2>📚 学习来源</h2><div class="shelf">
   ${cat.map(b=>`<a class="src" href="#/src/${b.id}"><img class="cv" src="${esc(CFG.booksBase+b.cover)}" alt="" loading="lazy"><span class="kind">绘本</span><div class="t"><b class="en">${esc(b.title)}</b><small>${esc(b.titleZh)} · ${b.pages} 页 · ${b.sentences} 句</small><small>⭐ 已收藏 ${bySrc[b.id]||0} 词</small></div></a>`).join('')}
+  ${mine.map(m=>`<a class="src" href="#/src/m:${esc(m.id)}">${m.cover?`<img class="cv" src="${esc(m.cover)}" alt="" loading="lazy">`:'<div class="cv">📘</div>'}<span class="kind">我的书</span><div class="t"><b class="en">${esc(m.title)}</b><small>${m.titleZh?esc(m.titleZh)+' · ':''}${m.pages} 页 · ${m.sentences} 句</small><small>⭐ 已收藏 ${bySrc['m:'+m.id]||0} 词</small></div></a>`).join('')}
   ${shared.map(g=>`<a class="src" href="#/src/g:${esc(g.id)}">${g.cover?`<img class="cv" src="${esc(g.cover)}" alt="" loading="lazy">`:`<div class="cv">${kindIco[g.kind]||'📝'}</div>`}<span class="kind">共享</span><div class="t"><b class="en">${esc(g.title)}</b><small>${g.pages} 页 · ${g.sentences} 句</small><small>⭐ 已收藏 ${bySrc['g:'+g.id]||0} 词</small></div></a>`).join('')}
   ${ups.map(u=>`<a class="src" href="#/src/u:${u.id}">${u.pages[0]&&u.pages[0].img?`<img class="cv" src="${u.pages[0].img}" alt="">`:`<div class="cv">${kindIco[u.kind]||'📝'}</div>`}<span class="kind">${u.kind==='audio'?'录音':u.kind==='photo'?'照片':'文字'}</span><div class="t"><b>${esc(u.title)}</b><small>${new Date(u.createdAt).toLocaleDateString('zh-CN')} · ${u.sentences.length} 句</small><small>⭐ 已收藏 ${bySrc['u:'+u.id]||0} 词</small></div></a>`).join('')}
   <a class="src add" href="#/upload"><span style="font-size:2.6rem">📥</span>上传照片 / 截屏 / 录音<small>自动变成可点击的学习来源</small></a></div>`}
@@ -127,7 +130,7 @@ async function viewSource(id,pg){if(cleanup){cleanup();cleanup=null}nav('src');a
   const hasImg=PREF.img&&page.img;
   app.innerHTML=`<div class="shead"><a class="btn sec sm" href="#/">← 来源</a><h1 class="en">${esc(b.title)}</h1>${b.titleZh?`<span class="zh">${esc(b.titleZh)}</span>`:''}</div>
   <div class="tools"><button class="toggle${PREF.img?' on':''}" data-act="timg">🖼 原图</button><button class="toggle${PREF.zh?' on':''}" data-act="tzh">中 中文对照</button>
-   <button class="toggle" data-act="pall">▶ 朗读本页</button>${ME.admin&&b.uid.startsWith('u:')?'<button class="toggle" data-act="pub">📢 发布给所有家庭</button>':''}${ME.admin&&b.uid.startsWith('g:')?'<button class="toggle" data-act="unpub">🗑 取消发布</button>':''}<span class="muted" style="font-size:.85rem">点任意单词 = 美音朗读 + ⭐收藏（再点取消）</span></div>
+   <button class="toggle" data-act="pall">▶ 朗读本页</button>${ME.admin&&(b.uid.startsWith('u:')||b.uid.startsWith('m:'))?'<button class="toggle" data-act="pub">📢 发布给所有家庭</button>':''}${b.uid.startsWith('m:')?'<button class="toggle" data-act="delbook">🗑 删除这本书</button>':''}${ME.admin&&b.uid.startsWith('g:')?'<button class="toggle" data-act="unpub">🗑 取消发布</button>':''}<span class="muted" style="font-size:.85rem">点任意单词 = 美音朗读 + ⭐收藏（再点取消）</span></div>
   ${P>1?`<div class="pager">${b.pages.map(p=>`<a href="#/src/${encodeURIComponent(b.uid)}/${p.n}" class="${p.n===pg?'on':''}${collectedPages.has(p.n)?' has':''}">${p.n}</a>`).join('')}</div>`:''}
   <div class="readwrap${hasImg?'':' noimg'}"><div><div class="text" lang="en">${text}</div>
    <div class="legend"><span><i style="background:var(--gold)"></i>已收藏·待学习</span><span><i style="background:var(--accent-soft)"></i>已学·待复习</span><span><i style="border-bottom:3px solid var(--forest)"></i>已进成就仓</span></div>
@@ -145,7 +148,8 @@ async function viewSource(id,pg){if(cleanup){cleanup();cleanup=null}nav('src');a
       if(k==='pall'){let i=0;const next=()=>{if(i<sents.length){const s=sents[i++];playSent(b,s.id,next)}};next();return}
       if(k==='learn'){location.hash='#/learn';return}
       if(k==='pub'){publish(b);return}
-      if(k==='unpub'){unpublish(b.uid.slice(2));return}}
+      if(k==='unpub'){unpublish(b.uid.slice(2));return}
+      if(k==='delbook'){delBook(b);return}}
     const w=e.target.closest('[data-w]');if(!w)return;
     const lm=w.dataset.w;const sid=w.dataset.sid!=null?+w.dataset.sid:(b.wmap[lm]?b.wmap[lm].ex:page.s[0]);
     say(w.dataset.sid!=null?w.textContent:lm);toggleCollect(b,lm,sid,pg);
@@ -402,9 +406,14 @@ async function publish(b){
   if(!confirm(`把「${b.title}」发布给所有家庭？\n\n请确认你有权分享这些内容（书籍扫描件可能受版权保护）。`))return;
   const id=('u'+b.id).toLowerCase().replace(/[^a-z0-9_-]/g,'').slice(0,40);
   try{toast('📢 正在发布…',60000);
-    for(const p of b.pages){if(p.img&&p.img.startsWith('data:')){const r=await fetch(`${CFG.sharedEndpoint}/${id}/img/${p.n}`,{method:'PUT',body:p.img,credentials:'same-origin'});if(!r.ok)throw await apiErr(r)}}
-    const {uid,wmap,...src}=b;const r=await fetch(CFG.sharedEndpoint,{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({...src,id})});
+    const pages=[];for(const p of b.pages){let img=p.img;if(img&&!img.startsWith('data:')){img=await toDataURL(img).catch(()=>null)}
+      if(img){const r=await fetch(`${CFG.sharedEndpoint}/${id}/img/${p.n}`,{method:'PUT',body:img,credentials:'same-origin'});if(!r.ok)throw await apiErr(r)}pages.push({...p,img})}
+    const {uid,wmap,...src}=b;src.pages=pages;const r=await fetch(CFG.sharedEndpoint,{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({...src,id})});
     if(!r.ok)throw await apiErr(r);SHARED=null;toast('📢 已发布给所有家庭（首页「共享」）',3000)}catch(e){toast('发布失败：'+esc(e.message),4500)}}
+function toDataURL(u){return fetch(u,{credentials:'same-origin'}).then(r=>{if(!r.ok)throw new Error('HTTP '+r.status);return r.blob()}).then(bl=>new Promise((ok,no)=>{const f=new FileReader();f.onload=()=>ok(f.result);f.onerror=()=>no(f.error);f.readAsDataURL(bl)}))}
+async function delBook(b){if(!confirm(`删除「${b.title}」？\n\n书本内容和页面图片都会从你的账号里删除（已收藏的单词会保留）。`))return;
+  const r=await fetch(CFG.mybooksEndpoint+'/'+encodeURIComponent(b.uid.slice(2)),{method:'DELETE',credentials:'same-origin'});
+  if(r.ok){MINE=null;delete BOOKS[b.uid];toast('已删除');location.hash='#/'}else toast('失败：'+esc((await apiErr(r)).message),4000)}
 async function unpublish(id){if(!confirm('取消发布后，其他家庭将看不到它。确定吗？'))return;
   const r=await fetch(CFG.sharedEndpoint+'/'+encodeURIComponent(id),{method:'DELETE',credentials:'same-origin'});
   if(r.ok){SHARED=null;delete BOOKS['g:'+id];toast('已取消发布');location.hash='#/'}else toast('失败：'+esc((await apiErr(r)).message),4000)}

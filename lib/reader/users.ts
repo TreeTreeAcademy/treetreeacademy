@@ -20,6 +20,10 @@ export function isAdmin(user: string | null | undefined): boolean {
   return /:admin$/i.test(users().get(u) || "");
 }
 
+export function userExists(name: string): boolean {
+  return users().has(name.trim().toLowerCase());
+}
+
 export function readerConfigured(): boolean {
   return users().size > 0 && !!process.env.READER_SESSION_SECRET;
 }
