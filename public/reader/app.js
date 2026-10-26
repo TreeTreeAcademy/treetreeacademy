@@ -169,15 +169,33 @@ function dock(){const d=$('#dock');if(!d)return;const q=Object.values(S.words).f
 
 /* ================= LEARN ZONE ================= */
 const STEP_NAMES=['① 单词卡','② 搭配选择','③ 用法场景'];
-function viewLearn(){nav('learn');let L=S.session.learn;
-  if(!L||!L.list||!L.list.length){const q=Object.values(S.words).filter(x=>x.st==='queued').sort((a,b)=>a.added-b.added).map(x=>x.w);
+/* The queue is learned in rounds of ~10 (a round of up to 13 is not split), each followed by the review flow.
+   S.session.learn = {kind:'queue'|'vault', list, i, step}. 'vault' = words picked in 成就仓 to re-learn. */
+const ROUND=10;
+const queuedWords=()=>Object.values(S.words).filter(x=>x.st==='queued').sort((a,b)=>a.added-b.added).map(x=>x.w);
+function newRound(){const q=queuedWords();if(!q.length)return S.session.learn=null;
+  return S.session.learn={kind:'queue',list:q.slice(0,q.length<=ROUND+3?q.length:ROUND),i:0,step:0}}
+function checkLearn(){let L=S.session.learn;if(!L||!L.list)return S.session.learn=null;
+  // drop words that were un-starred/deleted since the session was saved, keeping the position
+  const keep=L.list.filter(w=>S.words[w]);if(keep.length!==L.list.length){L.i=L.list.slice(0,L.i).filter(w=>S.words[w]).length;L.list=keep}
+  if(!L.list.length)return S.session.learn=null;
+  // sessions saved before rounds existed: a list that isn't all 待学 words came from 成就仓
+  if(!L.kind)L.kind=L.list.every(w=>S.words[w].st==='queued')?'queue':'vault';
+  const fresh=L.i===0&&L.step===0;
+  if(fresh&&L.kind==='queue')return newRound(); // not started yet → rebuild so newly starred words count
+  if(fresh&&L.kind==='vault'&&!L.picked&&queuedWords().length)return newRound(); // stale untouched 成就仓 pick shouldn't hide the queue
+  return L}
+function viewLearn(){nav('learn');const before=JSON.stringify(S.session.learn||null);let L=checkLearn();
+  if(!L||!L.list||!L.list.length){const q=queuedWords();
     if(!q.length){app.innerHTML=`<div class="zone-h"><span class="tag">🎓 学习区</span></div><div class="empty"><div class="e">🌱</div>学习区还是空的。<br>去 <a href="#/">学习来源</a> 的原文里点选想学的单词吧！<br><br><a class="btn sec" href="#/vault">🏆 去成就仓选词</a></div>`;return}
-    L=S.session.learn={list:q,i:0,step:0};save()}
-  enrichMissing(L.list);
+    L=newRound()}
+  if(JSON.stringify(S.session.learn||null)!==before)save();enrichMissing(L.list);
   renderLearn()}
 function renderLearn(){const L=S.session.learn;if(L.i>=L.list.length)return finishLearn();
   const w=L.list[L.i],c=content(w),rec=S.words[w]||{};const tot=L.list.length*3,done=L.i*3+L.step;
-  const head=`<div class="zone-h"><span class="tag">🎓 学习区</span><b class="en" style="font-size:1.1rem">${L.i+1} / ${L.list.length}</b><div class="bar"><b style="width:${done/tot*100}%"></b></div></div>
+  const Q=queuedWords().length;
+  const prog=L.kind==='vault'?`成就仓重学 ${L.i+1} / ${L.list.length}`:`本组 ${L.i+1} / ${L.list.length} · 待学共 ${Q} 个`;
+  const head=`<div class="zone-h"><span class="tag">🎓 学习区</span><b style="font-size:1.05rem">${prog}</b>${L.kind==='vault'&&Q?`<button class="btn sec sm" data-act="toqueue">去学待学的 ${Q} 个 →</button>`:''}<div class="bar"><b style="width:${done/tot*100}%"></b></div></div>
    <div class="steps">${STEP_NAMES.map((n,i)=>`<span class="${i===L.step?'on':i<L.step?'done':''}">${n}</span>`).join('')}</div>`;
   if(L.step===0){
     app.innerHTML=head+`<div class="flip" id="flip"><div class="in">
@@ -207,13 +225,14 @@ function renderLearn(){const L=S.session.learn;if(L.i>=L.list.length)return fini
        <div class="srcl"><button class="ico" data-say="${esc(en)}">▶</button>${t==='ai'?'<span>故事由 AI 创作（树儿学院原创，非引用）</span>':`<span>出处：${esc(label||'')}</span>${links}`}</div>`}
     else{const rec2=S.words[w]||{};body=`<span class="badge">📖 出自原文</span><blockquote lang="en">${speakable(rec2.en||w,w)}</blockquote><div class="szh2">${esc(rec2.szh||'')}</div>
       <div class="srcl"><button class="ico" data-say="${esc(rec2.en||w)}">▶</button><span>出处：${esc(rec2.srcTitle||'')}</span></div><div class="note">这个词暂无预置的歌曲 / 电影 / 名著场景。配置 AI 后台（/api/reader/enrich）后会自动生成一个标注「故事由 AI 创作」的小故事。</div>`}
-    app.innerHTML=head+`<div class="scene">${body}</div><div class="actions"><button class="btn" data-act="next">${L.i+1<L.list.length?'学下一个单词 →':'完成学习，进入复习区 →'}</button></div>`;
+    app.innerHTML=head+`<div class="scene">${body}</div><div class="actions"><button class="btn" data-act="next">${L.i+1<L.list.length?'学下一个单词 →':'完成本组，进入复习区 →'}</button></div>`;
   }
   const onClick=e=>{const a=e.target.closest('[data-act]');const sp=e.target.closest('[data-say]');
     if(sp){say(sp.dataset.say);return}
     if(e.target.closest('#flip')&&!a){$('#flip').classList.toggle('back');return}
     if(!a)return;const k=a.dataset.act;
     if(k==='flip'){$('#flip').classList.toggle('back');return}
+    if(k==='toqueue'){newRound();save();cleanup&&cleanup();cleanup=null;renderLearn();window.scrollTo(0,0);return}
     if(k==='mcq'){if($('#after').classList.contains('hidden')===false)return;const ok=a.dataset.v===app.dataset.ok;
       if(ok){a.classList.add('ok');$('#after').classList.remove('hidden');say('Great job!');}
       else{a.classList.add('bad');$$('.opt').forEach(o=>{if(o.dataset.v===app.dataset.ok)o.classList.add('ok')});$('#after').classList.remove('hidden');const r=S.words[w];if(r){r.miss=(r.miss||0)+1;save()}}
@@ -221,8 +240,16 @@ function renderLearn(){const L=S.session.learn;if(L.i>=L.list.length)return fini
     if(k==='next'){L.step++;if(L.step>2){const r=S.words[w];if(r&&r.st==='queued'){r.st='learned';r.learnedAt=Date.now();mark()}L.step=0;L.i++}save();cleanup&&cleanup();cleanup=null;renderLearn();window.scrollTo(0,0)}};
   if(cleanup)cleanup();app.addEventListener('click',onClick);cleanup=()=>app.removeEventListener('click',onClick)}
 function finishLearn(){const list=S.session.learn.list;S.session.learn=null;S.session.review={list,phase:'match',round:0,missed:[],queue:[]};save();
-  app.innerHTML=`<div class="empty"><div class="e">🎉</div><h2>学习完成！${list.length} 个单词</h2>马上进入复习区…</div>`;
-  setTimeout(()=>{location.hash='#/review'},1300)}
+  const left=queuedWords().length;
+  if(!left){app.innerHTML=`<div class="empty"><div class="e">🎉</div><h2>学习完成！${list.length} 个单词</h2>马上进入复习区…</div>`;
+    setTimeout(()=>{if(location.hash.startsWith('#/learn'))location.hash='#/review'},1300);return}
+  app.innerHTML=`<div class="empty"><div class="e">🎉</div><h2>本组学完！${list.length} 个单词</h2>还有 <b>${left}</b> 个单词待学。<br>建议先复习本组，通关后再学下一组。
+   <div class="actions" style="justify-content:center;margin-top:16px"><button class="btn" data-act="rv">🔁 复习本组 ${list.length} 个</button><button class="btn sec" data-act="more">🎓 再学一组</button></div></div>`;
+  const onClick=e=>{const a=e.target.closest('[data-act]');if(!a)return;
+    if(a.dataset.act==='rv'){location.hash='#/review';return}
+    // keep going: these words stay 「待复习」 and will be reviewed together with the next round
+    if(a.dataset.act==='more'){S.session.review=null;newRound();save();cleanup&&cleanup();cleanup=null;viewLearn();window.scrollTo(0,0)}};
+  if(cleanup)cleanup();app.addEventListener('click',onClick);cleanup=()=>app.removeEventListener('click',onClick)}
 
 /* ================= REVIEW ZONE ================= */
 function viewReview(){nav('review');let R=S.session.review;
@@ -293,7 +320,7 @@ function viewVault(flag){if(cleanup){cleanup();cleanup=null}nav('vault');const M
   const inProg=Object.values(S.words).filter(x=>x.st!=='mastered').length;
   const last=S.session.last;
   app.innerHTML=`<div class="zone-h"><span class="tag va">🏆 成就仓</span><span class="muted">学会的单词都停在这里，像停车场一样排好队</span></div>
-  ${flag==='new'&&last?`<div class="banner">🎉 太棒了！刚刚有 ${last.n} 个单词${last.perfect?'一次通关':'通过情景对话通关'}，停进了成就仓。</div>`:''}
+  ${flag==='new'&&last?`<div class="banner">🎉 太棒了！刚刚有 ${last.n} 个单词${last.perfect?'一次通关':'通过情景对话通关'}，停进了成就仓。${queuedWords().length?` 还有 ${queuedWords().length} 个单词待学 → <a class="btn sm" href="#/learn">🎓 再学一组</a>`:''}</div>`:''}
   <div class="vstats"><div class="pill"><b>${M.length}</b>累计单词</div><div class="pill"><b>${sentences}</b>原文句子</div><div class="pill"><b>${sources}</b>学习来源</div>
    <div class="pill"><b>🔥 ${streak()}</b>连续学习天数</div><div class="pill"><b>${days.length}</b>学习天数</div><div class="pill"><b>${inProg}</b>学习/复习中</div></div>
   <p class="faint" style="font-size:.8rem;margin:-4px 0 10px">${days.length?`首次学习 ${days[0]} · 最近学习 ${days[days.length-1]}`:''}</p>
@@ -309,7 +336,7 @@ function viewVault(flag){if(cleanup){cleanup();cleanup=null}nav('vault');const M
     if(a){const k=a.dataset.act,sel=[...VSEL];
       if(k==='all'){if(VSEL.size===M.length)VSEL.clear();else M.forEach(x=>VSEL.add(x.w));return viewVault()}
       if(k==='stay'){VSEL.clear();toast('好的，继续留在成就仓 🏆');return viewVault()}
-      if(k==='tolearn'){S.session.learn={list:sel,i:0,step:0};VSEL.clear();save();location.hash='#/learn';return}
+      if(k==='tolearn'){S.session.learn={kind:'vault',picked:Date.now(),list:sel,i:0,step:0};VSEL.clear();save();location.hash='#/learn';return}
       if(k==='toreview'){S.session.review={list:sel,phase:'match',round:0,missed:[],queue:[]};VSEL.clear();save();location.hash='#/review';return}}
     const v=e.target.closest('.vcard');if(!v)return;const w=v.dataset.v;VSEL.has(w)?VSEL.delete(w):VSEL.add(w);v.classList.toggle('sel');$('.ck',v).textContent=VSEL.has(w)?'✓':'';vdock()};
   app.addEventListener('click',onClick);cleanup=()=>app.removeEventListener('click',onClick)}
