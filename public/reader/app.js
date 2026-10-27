@@ -24,8 +24,8 @@ const say=(t,r,cb)=>TTS.speak(t,r,cb);
 let USER='demo',ME={};
 const KEY=()=>'tt2.'+USER+'.state';
 let S;
-function blank(){return{v:2,words:{},log:{},session:{},enrich:{},updatedAt:0}}
-function load(){try{S=JSON.parse(localStorage.getItem(KEY()))||blank()}catch(e){S=blank()}S.words=S.words||{};S.log=S.log||{};S.session=S.session||{};S.enrich=S.enrich||{}}
+function blank(){return{v:2,words:{},log:{},session:{},enrich:{},sq:{},updatedAt:0}}
+function load(){try{S=JSON.parse(localStorage.getItem(KEY()))||blank()}catch(e){S=blank()}S.words=S.words||{};S.log=S.log||{};S.session=S.session||{};S.enrich=S.enrich||{};S.sq=S.sq||{}}
 let syncT;
 function save(){S.updatedAt=Date.now();localStorage.setItem(KEY(),JSON.stringify(S));badges();
   if(CFG.progressEndpoint&&CFG.syncProgress!==false&&SYNC_OK){clearTimeout(syncT);syncT=setTimeout(()=>fetch(CFG.progressEndpoint,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(S)}).catch(()=>{}),1500)}}
@@ -192,7 +192,7 @@ function viewLearn(){nav('learn');const before=JSON.stringify(S.session.learn||n
   if(!L||!L.list||!L.list.length){const q=queuedWords();
     if(!q.length){app.innerHTML=`<div class="zone-h"><span class="tag">🎓 学习区</span></div><div class="empty"><div class="e">🌱</div>学习区还是空的。<br>去 <a href="#/">学习来源</a> 的原文里点选想学的单词吧！<br><br><a class="btn sec" href="#/vault">🏆 去成就仓选词</a></div>`;return}
     L=newRound()}
-  if(JSON.stringify(S.session.learn||null)!==before)save();enrichMissing(L.list);loadDict();
+  if(JSON.stringify(S.session.learn||null)!==before)save();kickPrep(L.list);loadDict();
   renderLearn()}
 function renderLearn(){const L=S.session.learn;if(L.i>=L.list.length)return finishLearn();
   const w=L.list[L.i],c=content(w),rec=S.words[w]||{};const tot=L.list.length*NSTEP;
@@ -227,15 +227,7 @@ function renderLearn(){const L=S.session.learn;if(L.i>=L.list.length)return fini
     setTimeout(()=>say(q.say),250);
     app.dataset.ok=q.ok;
   }else{
-    const sc=c.scene;let body;
-    const TYPES={song:'🎵 歌词',movie:'🎬 电影台词',book:'📖 名著经典',poem:'📜 诗歌',speech:'🗣 名人演讲',proverb:'💬 英语谚语',ai:'🤖 故事由 AI 创作'};
-    if(sc){const [t,en,zh,label,url]=sc;
-      const links=t==='ai'?'':url?`<a href="${esc(url)}" target="_blank" rel="noopener">查看出处 ↗</a>${(t==='song'||t==='movie')?` · <a href="https://www.youtube.com/results?search_query=${encodeURIComponent((label||'').replace(/[\u4e00-\u9fff（）《》，·]+/g,' ')+' '+en)}" target="_blank" rel="noopener">▶ YouTube 搜索</a>`:''}`:'';
-      body=`<span class="badge${t==='ai'?' ai':''}">${TYPES[t]||t}</span><blockquote lang="en">${speakable(en,w)}</blockquote><div class="szh2">${esc(zh)}</div>
-       <div class="srcl"><button class="ico" data-say="${esc(en)}">▶</button>${t==='ai'?'<span>故事由 AI 创作（树儿学院原创，非引用）</span>':`<span>出处：${esc(label||'')}</span>${links}`}</div>`}
-    else{const rec2=S.words[w]||{};body=`<span class="badge">📖 出自原文</span><blockquote lang="en">${speakable(rec2.en||w,w)}</blockquote><div class="szh2">${esc(rec2.szh||'')}</div>
-      <div class="srcl"><button class="ico" data-say="${esc(rec2.en||w)}">▶</button><span>出处：${esc(rec2.srcTitle||'')}</span></div><div class="note">这个词暂无预置的歌曲 / 电影 / 名著场景。配置 AI 后台（/api/reader/enrich）后会自动生成一个标注「故事由 AI 创作」的小故事。</div>`}
-    app.innerHTML=head+`<div class="scene">${body}</div><div class="actions"><button class="btn" data-act="next">${L.i+1<L.list.length?'学下一个单词 →':'完成本组，进入复习区 →'}</button></div>`;
+    return renderScene(w,head,c)
   }
   bindLearn(w);
 }
@@ -245,13 +237,75 @@ function bindLearn(w,extra){const L=S.session.learn;
     if(e.target.closest('#flip')&&!a){$('#flip').classList.toggle('back');return}
     if(!a)return;const k=a.dataset.act;
     if(k==='flip'){$('#flip').classList.toggle('back');return}
-    if(k==='toqueue'){newRound();save();cleanup&&cleanup();cleanup=null;renderLearn();window.scrollTo(0,0);return}
+    if(k==='toqueue'){newRound();save();kickPrep(S.session.learn.list);cleanup&&cleanup();cleanup=null;renderLearn();window.scrollTo(0,0);return}
     if(k==='mcq'){if($('#after').classList.contains('hidden')===false)return;const ok=a.dataset.v===app.dataset.ok;
       if(ok){a.classList.add('ok');$('#after').classList.remove('hidden');say('Great job!');}
       else{a.classList.add('bad');$$('.opt').forEach(o=>{if(o.dataset.v===app.dataset.ok)o.classList.add('ok')});$('#after').classList.remove('hidden');const r=S.words[w];if(r){r.miss=(r.miss||0)+1;save()}}
       return}
     if(k==='next'){L.step++;if(L.step>=NSTEP){const r=S.words[w];if(r&&r.st==='queued'){r.st='learned';r.learnedAt=Date.now();mark()}L.step=0;L.i++}save();cleanup&&cleanup();cleanup=null;renderLearn();window.scrollTo(0,0)}};
   if(cleanup)cleanup();app.addEventListener('click',onClick);cleanup=()=>{app.removeEventListener('click',onClick);extra&&extra()}}
+function renderSceneStatic(w,head,c){const L=S.session.learn;
+  const sc=c.scene;let body;
+    const TYPES={song:'🎵 歌词',movie:'🎬 电影台词',book:'📖 名著经典',poem:'📜 诗歌',speech:'🗣 名人演讲',proverb:'💬 英语谚语',ai:'🤖 故事由 AI 创作'};
+    if(sc){const [t,en,zh,label,url]=sc;
+      const links=t==='ai'?'':url?`<a href="${esc(url)}" target="_blank" rel="noopener">查看出处 ↗</a>${(t==='song'||t==='movie')?` · <a href="https://www.youtube.com/results?search_query=${encodeURIComponent((label||'').replace(/[\u4e00-\u9fff（）《》，·]+/g,' ')+' '+en)}" target="_blank" rel="noopener">▶ YouTube 搜索</a>`:''}`:'';
+      body=`<span class="badge${t==='ai'?' ai':''}">${TYPES[t]||t}</span><blockquote lang="en">${speakable(en,w)}</blockquote><div class="szh2">${esc(zh)}</div>
+       <div class="srcl"><button class="ico" data-say="${esc(en)}">▶</button>${t==='ai'?'<span>故事由 AI 创作（树儿学院原创，非引用）</span>':`<span>出处：${esc(label||'')}</span>${links}`}</div>`}
+    else{const rec2=S.words[w]||{};body=`<span class="badge">📖 出自原文</span><blockquote lang="en">${speakable(rec2.en||w,w)}</blockquote><div class="szh2">${esc(rec2.szh||'')}</div>
+      <div class="srcl"><button class="ico" data-say="${esc(rec2.en||w)}">▶</button><span>出处：${esc(rec2.srcTitle||'')}</span></div><div class="note">这个词暂无预置的歌曲 / 电影 / 名著场景。配置 AI 后台（/api/reader/enrich）后会自动生成一个标注「故事由 AI 创作」的小故事。</div>`}
+    app.innerHTML=head+`<div class="scene">${body}</div><div class="actions"><button class="btn" data-act="next">${L.i+1<L.list.length?'学下一个单词 →':'完成本组，进入复习区 →'}</button></div>`;
+  bindLearn(w)}
+
+/* ---------- ⑤ 用法场景 = 译文选择题 (read the English, pick the right Chinese) ---------- */
+const QZ={p:null,busy:{}};
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function sceneOf(w,c){const sc=c.scene;if(sc&&sc[1]&&sc[2])return{t:sc[0],en:sc[1],zh:sc[2],label:sc[3],url:sc[4]};
+  const rec=S.words[w]||{};return rec.en&&rec.szh?{t:'book',en:rec.en,zh:rec.szh,label:rec.srcTitle}:null}
+const zkey=z=>String(z||'').replace(/\s+/g,'');
+function quizOpts(w,s){const e=!LEX[w]&&S.enrich[w];let o=null;
+  if(e&&e.scene&&e.scene[1]===s.en&&e.sd&&e.sd.length>=2)o=e.sd;
+  else{const q=S.sq&&S.sq[w];if(q&&q.en===s.en&&q.zh===s.zh&&q.o&&q.o.length>=2)o=q.o}
+  if(!o)return null;o=[...new Set(o.map(x=>String(x).trim()).filter(x=>x&&zkey(x)!==zkey(s.zh)))].slice(0,3);return o.length>=2?o:null}
+/* no-AI fallback: Chinese translations of OTHER sentences (same book first), closest in length */
+function fallbackOpts(w,s){const rec=S.words[w]||{};const seen=new Set([zkey(s.zh)]);const cand=[];
+  const add=(z,book)=>{z=String(z||'').trim();const k=zkey(z);if(!z||seen.has(k))return;seen.add(k);cand.push({z,book})};
+  Object.entries(S.words).forEach(([k,r])=>{if(k!==w&&r&&r.szh&&r.en!==s.en)add(r.szh,r.src&&r.src===rec.src)});
+  Object.entries(S.enrich).forEach(([k,e])=>{if(k!==w&&e&&e.scene&&e.scene[2])add(e.scene[2])});
+  Object.entries(LEX).forEach(([k,e])=>{if(k!==w&&e&&e.scene&&e.scene[2])add(e.scene[2])});
+  const L=zkey(s.zh).length;cand.sort((a,b)=>Math.abs(zkey(a.z).length-L)-Math.abs(zkey(b.z).length-L)-(a.book?4:0)+(b.book?4:0));
+  const pick=shuffle(cand.slice(0,6)).slice(0,3).map(x=>x.z);return pick.length>=2?pick:null}
+function kickPrep(list){QZ.p=Promise.resolve(enrichMissing(list)).then(()=>prefetchQuiz(list)).catch(()=>{})}
+function prefetchQuiz(list){if(!CFG.quizEndpoint)return null;
+  const items=[];(list||[]).forEach(w=>{const s=sceneOf(w,content(w));if(s&&!quizOpts(w,s)&&!QZ.busy[w+'|'+s.en])items.push({w,en:s.en,zh:s.zh})});
+  if(!items.length)return null;items.forEach(x=>QZ.busy[x.w+'|'+x.en]=1);
+  return fetch(CFG.quizEndpoint,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({items:items.slice(0,10)})})
+    .then(r=>r.ok?r.json():{}).then(j=>{let n=0;for(const x of items){const o=j&&j.opts&&j.opts[x.w];if(Array.isArray(o)&&o.length>=2){S.sq[x.w]={en:x.en,zh:x.zh,o:o.slice(0,3)};n++}}if(n)save()})
+    .catch(()=>{}).then(()=>{items.forEach(x=>delete QZ.busy[x.w+'|'+x.en])})}
+function renderScene(w,head,c,waited){const L=S.session.learn;const s=sceneOf(w,c);
+  if(!s)return renderSceneStatic(w,head,c);
+  let dis=quizOpts(w,s);
+  if(!dis&&QZ.p&&!waited){app.innerHTML=head+'<div class="empty">…</div>';
+    Promise.race([QZ.p,sleep(3500)]).then(()=>{const l=S.session.learn;if(l&&l.list&&l.list[l.i]===w&&l.step===4&&location.hash.startsWith('#/learn'))renderScene(w,head,c,true)});return}
+  if(!dis)dis=fallbackOpts(w,s);
+  if(!dis)return renderSceneStatic(w,head,c);
+  const TYPES={song:'🎵 歌词',movie:'🎬 电影台词',book:'📖 名著经典',poem:'📜 诗歌',speech:'🗣 名人演讲',proverb:'💬 英语谚语',ai:'🤖 故事由 AI 创作'};
+  const opts=shuffle([s.zh,...dis]);
+  const links=s.t==='ai'||s.t==='book'||!s.url?'':`<a href="${esc(s.url)}" target="_blank" rel="noopener">查看出处 ↗</a>${(s.t==='song'||s.t==='movie')?` · <a href="https://www.youtube.com/results?search_query=${encodeURIComponent((s.label||'').replace(/[\u4e00-\u9fff（）《》，·]+/g,' ')+' '+s.en)}" target="_blank" rel="noopener">▶ YouTube 搜索</a>`:''}`;
+  const lab=s.t==='ai'?'<span>故事由 AI 创作（树儿学院原创，非引用）</span>':s.t==='book'?`<span>出处：${esc(s.label||'')}</span>`:`<span>出处：${esc(s.label||'')}</span>${links}`;
+  app.innerHTML=head+`<div class="scene qz"><span class="badge${s.t==='ai'?' ai':''}">${s.t==='book'?'📖 出自原文':TYPES[s.t]||s.t}</span>
+    <blockquote lang="en">${speakable(s.en,w)}</blockquote>
+    <div class="srcl"><button class="ico" data-say="${esc(s.en)}" aria-label="朗读">▶</button>${lab}</div>
+    <div class="muted qz-q">👇 选一选，这句话的中文意思是？</div>
+    <div class="opts" id="qz-opts">${opts.map((o,i)=>`<button class="opt" data-act="qz" data-v="${esc(o)}"><span class="L">${'ABCD'[i]}</span><span>${esc(o)}</span></button>`).join('')}</div>
+    <div id="qz-msg" class="sp-msg" aria-live="polite"></div></div>
+    <div id="qz-after" class="actions hidden"><button class="btn" data-act="next">${L.i+1<L.list.length?'学下一个单词 →':'完成本组，进入复习区 →'}</button></div>`;
+  const onQz=e=>{const a=e.target.closest('[data-act="qz"]');if(!a||!$('#qz-after').classList.contains('hidden'))return;
+    const ok=a.dataset.v===s.zh;const box=$('#qz-opts');box.classList.add('done');
+    if(ok){a.classList.add('ok');$('#qz-msg').className='sp-msg good';$('#qz-msg').innerHTML=`${PRAISE[Math.random()*PRAISE.length|0]} 翻译对啦，听一听 🎧`}
+    else{a.classList.add('bad');$$('#qz-opts .opt').forEach(o=>{if(o.dataset.v===s.zh)o.classList.add('ok')});$('#qz-msg').className='sp-msg bad';$('#qz-msg').innerHTML='差一点点～绿色的才是正确的翻译，读一读再继续 💪';missOnce(w)}
+    $('#qz-after').classList.remove('hidden');say(s.en);setTimeout(()=>{try{$('#qz-after').scrollIntoView({block:'nearest',behavior:'smooth'})}catch(_){}},60)};
+  app.addEventListener('click',onQz);
+  bindLearn(w,()=>app.removeEventListener('click',onQz))}
 /* ---------- 学习区 steps ②拼写补全 and ④句子重组 (drag or tap; pointer events, no page scroll while dragging) ---------- */
 const PH=window.TT_PH;
 const DICT={set:null,ready:false,p:null};

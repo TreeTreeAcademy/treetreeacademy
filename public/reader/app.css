@@ -213,3 +213,13 @@ textarea{font-family:var(--en);min-height:180px}
 .tb.wd{font-size:1.2rem;min-height:50px;padding:6px 12px;font-weight:800}
 .szh3{font-size:1.2rem;color:var(--muted);line-height:1.6;font-weight:500}
 @media (max-width:480px){.steps{gap:4px}.steps span{font-size:.7rem;padding:6px 1px}.tb{min-width:50px}}
+
+/* ⑤ 译文选择题 */
+.scene.qz .opts{margin:6px 0 4px}
+.scene.qz .qz-q{margin:14px 0 8px;font-weight:700}
+.scene.qz .opt{font-size:1rem;line-height:1.5;padding:12px 14px;align-items:flex-start}
+.scene.qz .opt .L{margin-top:2px}
+.scene.qz .opts.done .opt:not(.ok):not(.bad){opacity:.55}
+.sp-msg.bad{color:#b3261e;font-weight:800}
+.scene.qz blockquote{font-size:1.2rem;line-height:1.55;margin-top:10px}.scene.qz .srcl{border-top:0;padding-top:2px;margin-bottom:2px}
+.scene.qz .w.hl{background:var(--gold);border-radius:6px;padding:0 4px;font-weight:900}
