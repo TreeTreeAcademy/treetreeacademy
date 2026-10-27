@@ -168,19 +168,22 @@ function dock(){const d=$('#dock');if(!d)return;const q=Object.values(S.words).f
    :`<span class="muted">点击原文中的单词，把它收藏进学习区 ⭐</span>`}
 
 /* ================= LEARN ZONE ================= */
-const STEP_NAMES=['① 单词卡','② 搭配选择','③ 用法场景'];
+const STEP_NAMES=['① 单词卡','② 拼写补全','③ 搭配选择','④ 句子重组','⑤ 用法场景'];
+const NSTEP=STEP_NAMES.length;
 /* The queue is learned in rounds of ~10 (a round of up to 13 is not split), each followed by the review flow.
    S.session.learn = {kind:'queue'|'vault', list, i, step}. 'vault' = words picked in 成就仓 to re-learn. */
 const ROUND=10;
 const queuedWords=()=>Object.values(S.words).filter(x=>x.st==='queued').sort((a,b)=>a.added-b.added).map(x=>x.w);
 function newRound(){const q=queuedWords();if(!q.length)return S.session.learn=null;
-  return S.session.learn={kind:'queue',list:q.slice(0,q.length<=ROUND+3?q.length:ROUND),i:0,step:0}}
+  return S.session.learn={kind:'queue',v:2,list:q.slice(0,q.length<=ROUND+3?q.length:ROUND),i:0,step:0}}
 function checkLearn(){let L=S.session.learn;if(!L||!L.list)return S.session.learn=null;
   // drop words that were un-starred/deleted since the session was saved, keeping the position
   const keep=L.list.filter(w=>S.words[w]);if(keep.length!==L.list.length){L.i=L.list.slice(0,L.i).filter(w=>S.words[w]).length;L.list=keep}
   if(!L.list.length)return S.session.learn=null;
   // sessions saved before rounds existed: a list that isn't all 待学 words came from 成就仓
   if(!L.kind)L.kind=L.list.every(w=>S.words[w].st==='queued')?'queue':'vault';
+  // sessions saved with the old 3-step flow: 搭配选择 1→2, 用法场景 2→4
+  if(L.v!==2){if(L.step===1)L.step=2;else if(L.step===2)L.step=4;L.v=2}
   const fresh=L.i===0&&L.step===0;
   if(fresh&&L.kind==='queue')return newRound(); // not started yet → rebuild so newly starred words count
   if(fresh&&L.kind==='vault'&&!L.picked&&queuedWords().length)return newRound(); // stale untouched 成就仓 pick shouldn't hide the queue
@@ -189,10 +192,13 @@ function viewLearn(){nav('learn');const before=JSON.stringify(S.session.learn||n
   if(!L||!L.list||!L.list.length){const q=queuedWords();
     if(!q.length){app.innerHTML=`<div class="zone-h"><span class="tag">🎓 学习区</span></div><div class="empty"><div class="e">🌱</div>学习区还是空的。<br>去 <a href="#/">学习来源</a> 的原文里点选想学的单词吧！<br><br><a class="btn sec" href="#/vault">🏆 去成就仓选词</a></div>`;return}
     L=newRound()}
-  if(JSON.stringify(S.session.learn||null)!==before)save();enrichMissing(L.list);
+  if(JSON.stringify(S.session.learn||null)!==before)save();enrichMissing(L.list);loadDict();
   renderLearn()}
 function renderLearn(){const L=S.session.learn;if(L.i>=L.list.length)return finishLearn();
-  const w=L.list[L.i],c=content(w),rec=S.words[w]||{};const tot=L.list.length*3,done=L.i*3+L.step;
+  const w=L.list[L.i],c=content(w),rec=S.words[w]||{};const tot=L.list.length*NSTEP;
+  // skip steps that don't apply to this word (e.g. no usable sentence)
+  while(L.step<NSTEP&&!stepOK(L.step,w))L.step++;
+  const done=L.i*NSTEP+L.step;
   const Q=queuedWords().length;
   const prog=L.kind==='vault'?`成就仓重学 ${L.i+1} / ${L.list.length}`:`本组 ${L.i+1} / ${L.list.length} · 待学共 ${Q} 个`;
   const head=`<div class="zone-h"><span class="tag">🎓 学习区</span><b style="font-size:1.05rem">${prog}</b>${L.kind==='vault'&&Q?`<button class="btn sec sm" data-act="toqueue">去学待学的 ${Q} 个 →</button>`:''}<div class="bar"><b style="width:${done/tot*100}%"></b></div></div>
@@ -206,6 +212,10 @@ function renderLearn(){const L=S.session.learn;if(L.i>=L.list.length)return fini
      <div class="actions"><button class="btn sec" data-act="flip">🔄 翻面</button><button class="btn" data-act="next">记住了，下一步 →</button></div>`;
     setTimeout(()=>say(w),250);
   }else if(L.step===1){
+    return renderSpell(w,head,c)
+  }else if(L.step===3){
+    return renderSent(w,head,c)
+  }else if(L.step===2){
     let q;
     if(c.phrases.length){const ph=c.phrases[L.i%c.phrases.length];const pool=shuffle(Object.entries(LEX).filter(([k])=>k!==w).flatMap(([,e])=>e.phrases.map(p=>p[1]))).filter(z=>z!==ph[1]).slice(0,3);
       q={prompt:`<div class="muted">这个短语 / 习语是什么意思？</div><div class="phr">${speakable(ph[0])}</div><button class="ico" data-say="${esc(ph[0])}">🔊</button>`,ok:ph[1],opts:shuffle([ph[1],...pool]),say:ph[0]}}
@@ -213,7 +223,7 @@ function renderLearn(){const L=S.session.learn;if(L.i>=L.list.length)return fini
       q={prompt:`<div class="muted">这个词在原文里的意思是？</div><div class="phr">${esc(w)}</div><button class="ico" data-say="${esc(w)}">🔊</button><div class="note">这个词还没有收录固定搭配；接入 AI 后台后可自动生成短语题。</div>`,ok,opts:shuffle([ok,...pool]),say:w}}
     app.innerHTML=head+`<div class="qbox"><div class="prompt">${q.prompt}</div><div class="opts">${q.opts.map((o,i)=>`<button class="opt" data-act="mcq" data-v="${esc(o)}"><span class="L">${'ABCD'[i]}</span><span>${esc(o)}</span></button>`).join('')}</div>
      <div id="after" class="hidden">${c.phrases.length?`<div class="phlist"><b>📌 常见搭配</b>${c.phrases.map(p=>`<div><button class="ico" data-say="${esc(p[0])}">🔊</button><span class="en">${esc(p[0])}</span><span class="muted">${esc(p[1])}</span></div>`).join('')}</div>`:''}
-      <div class="actions"><button class="btn" data-act="next">下一步：用法场景 →</button></div></div></div>`;
+      <div class="actions"><button class="btn" data-act="next">下一步：句子重组 →</button></div></div></div>`;
     setTimeout(()=>say(q.say),250);
     app.dataset.ok=q.ok;
   }else{
@@ -227,6 +237,9 @@ function renderLearn(){const L=S.session.learn;if(L.i>=L.list.length)return fini
       <div class="srcl"><button class="ico" data-say="${esc(rec2.en||w)}">▶</button><span>出处：${esc(rec2.srcTitle||'')}</span></div><div class="note">这个词暂无预置的歌曲 / 电影 / 名著场景。配置 AI 后台（/api/reader/enrich）后会自动生成一个标注「故事由 AI 创作」的小故事。</div>`}
     app.innerHTML=head+`<div class="scene">${body}</div><div class="actions"><button class="btn" data-act="next">${L.i+1<L.list.length?'学下一个单词 →':'完成本组，进入复习区 →'}</button></div>`;
   }
+  bindLearn(w);
+}
+function bindLearn(w,extra){const L=S.session.learn;
   const onClick=e=>{const a=e.target.closest('[data-act]');const sp=e.target.closest('[data-say]');
     if(sp){say(sp.dataset.say);return}
     if(e.target.closest('#flip')&&!a){$('#flip').classList.toggle('back');return}
@@ -237,8 +250,146 @@ function renderLearn(){const L=S.session.learn;if(L.i>=L.list.length)return fini
       if(ok){a.classList.add('ok');$('#after').classList.remove('hidden');say('Great job!');}
       else{a.classList.add('bad');$$('.opt').forEach(o=>{if(o.dataset.v===app.dataset.ok)o.classList.add('ok')});$('#after').classList.remove('hidden');const r=S.words[w];if(r){r.miss=(r.miss||0)+1;save()}}
       return}
-    if(k==='next'){L.step++;if(L.step>2){const r=S.words[w];if(r&&r.st==='queued'){r.st='learned';r.learnedAt=Date.now();mark()}L.step=0;L.i++}save();cleanup&&cleanup();cleanup=null;renderLearn();window.scrollTo(0,0)}};
-  if(cleanup)cleanup();app.addEventListener('click',onClick);cleanup=()=>app.removeEventListener('click',onClick)}
+    if(k==='next'){L.step++;if(L.step>=NSTEP){const r=S.words[w];if(r&&r.st==='queued'){r.st='learned';r.learnedAt=Date.now();mark()}L.step=0;L.i++}save();cleanup&&cleanup();cleanup=null;renderLearn();window.scrollTo(0,0)}};
+  if(cleanup)cleanup();app.addEventListener('click',onClick);cleanup=()=>{app.removeEventListener('click',onClick);extra&&extra()}}
+/* ---------- 学习区 steps ②拼写补全 and ④句子重组 (drag or tap; pointer events, no page scroll while dragging) ---------- */
+const PH=window.TT_PH;
+const DICT={set:null,ready:false,p:null};
+function loadDict(){if(DICT.p)return DICT.p;
+  DICT.p=fetch((CFG.wordsUrl||'/reader/words.txt'),{credentials:'same-origin'}).then(r=>r.ok?r.text():'').then(t=>{DICT.set=new Set(t.split('\n').filter(Boolean))}).catch(()=>{}).then(()=>{DICT.ready=true});return DICT.p}
+function sentenceFor(w){const rec=S.words[w]||{};return PH?PH.sentencePlan(rec.en,w,t=>hiMatch(t,w)):null}
+function stepOK(step,w){if(step===1)return !!(PH&&PH.plan(w));if(step===3)return !!sentenceFor(w);return true}
+/* Generic drag helper. root: element holding .tb tiles; hooks: {drop(id,fromEl,target,x,y), tap(id,fromEl)} */
+function dragKit(root,hooks){let d=null;
+  const clear=()=>{if(!d)return;d.ghost&&d.ghost.remove();$$('.hot').forEach(x=>x.classList.remove('hot'));d.el.classList.remove('dragging');d=null};
+  const down=e=>{const t=e.target.closest('.tb');if(!t||!root.contains(t)||t.classList.contains('lock')||(e.button!=null&&e.button>0))return;
+    d={el:t,id:t.dataset.id,x0:e.clientX,y0:e.clientY,on:false,pid:e.pointerId,ghost:null};try{t.setPointerCapture(e.pointerId)}catch(_){}};
+  const move=e=>{if(!d||e.pointerId!==d.pid)return;const dx=e.clientX-d.x0,dy=e.clientY-d.y0;
+    if(!d.on){if(dx*dx+dy*dy<64)return;d.on=true;const r=d.el.getBoundingClientRect();const g=d.el.cloneNode(true);g.classList.add('ghost');g.style.width=r.width+'px';g.style.height=r.height+'px';document.body.appendChild(g);d.ghost=g;d.ox=r.width/2;d.oy=r.height/2;d.el.classList.add('dragging')}
+    e.preventDefault();d.ghost.style.left=(e.clientX-d.ox)+'px';d.ghost.style.top=(e.clientY-d.oy)+'px';
+    $$('.hot').forEach(x=>x.classList.remove('hot'));const u=document.elementFromPoint(e.clientX,e.clientY);const tg=u&&u.closest('[data-drop]');if(tg&&root.contains(tg))tg.classList.add('hot')};
+  const up=e=>{if(!d||e.pointerId!==d.pid)return;const was=d;const on=d.on;
+    const u=on?document.elementFromPoint(e.clientX,e.clientY):null;const tg=u&&u.closest('[data-drop]');
+    clear();if(!on){hooks.tap(was.id,was.el);return}
+    hooks.drop(was.id,was.el,tg&&root.contains(tg)?tg:null,e.clientX,e.clientY)};
+  const cancel=()=>clear();
+  const noMenu=e=>{if(e.target.closest('.tb'))e.preventDefault()};
+  root.addEventListener('pointerdown',down);root.addEventListener('pointermove',move,{passive:false});root.addEventListener('pointerup',up);root.addEventListener('pointercancel',cancel);root.addEventListener('contextmenu',noMenu);
+  return()=>{clear();root.removeEventListener('pointerdown',down);root.removeEventListener('pointermove',move);root.removeEventListener('pointerup',up);root.removeEventListener('pointercancel',cancel);root.removeEventListener('contextmenu',noMenu)}}
+const missOnce=w=>{const r=S.words[w];if(r){r.miss=(r.miss||0)+1;save()}};
+const PRAISE=['太棒了！🎉','答对啦！⭐','真厉害！👏','完美！🌟'];
+
+/* ② 拼写补全 */
+function renderSpell(w,head,c){const L=S.session.learn;
+  if(!DICT.ready){loadDict().then(()=>{const l=S.session.learn;if(l&&l.list&&l.list[l.i]===w&&l.step===1&&location.hash.startsWith('#/learn'))renderLearn()});app.innerHTML=head+'<div class="empty">…</div>';return}
+  const pl=PH.plan(w);const dis=PH.distractors(pl,DICT.set);
+  const tiles=shuffle([...pl.letters.map(ch=>({ch})),...dis.map(ch=>({ch,x:1}))]).map((t,i)=>({id:'t'+i,ch:t.ch}));
+  const blanks=pl.pieces.filter(p=>p.blank);const nSlots=pl.letters.length;
+  const st={slots:Array(nSlots).fill(null),tries:0,done:false,locked:new Set(),wrong:new Set(),shownAnswer:false};
+  const ch=id=>tiles.find(t=>t.id===id).ch;
+  const ans=()=>{let k=0;return pl.pieces.map(p=>{if(!p.blank)return p.t;let s='';for(let j=0;j<p.t.length;j++)s+=ch(st.slots[k++]||'')||'';return s}).join('')};
+  const size=(pl.word.length>9?44:pl.word.length>6?50:56);
+  function paint(){const inSlot=new Set(st.slots.filter(Boolean));let k=0;
+    const wordHTML=pl.pieces.map(p=>{if(!p.blank)return `<span class="vis">${esc(p.t)}</span>`;
+      const boxes=[...p.t].map(()=>{const i=k++,id=st.slots[i];
+        return `<span class="lt${st.wrong.has(i)?' bad':''}${st.done?' ok':''}${st.shownAnswer?' shown':''}" data-drop="s${i}">${id?`<button class="tb${st.locked.has(i)||st.done?' lock':''}" data-id="${id}" data-from="s${i}">${esc(ch(id))}</button>`:''}</span>`}).join('');
+      return `<span class="bk"><span class="bx">${boxes}</span><small>${p.t.length}个字母</small></span>`}).join('');
+    const pool=tiles.filter(t=>!inSlot.has(t.id));
+    $('#sp-word').innerHTML=wordHTML;
+    $('#sp-pool').innerHTML=pool.length?pool.map(t=>`<button class="tb" data-id="${t.id}" data-from="pool" aria-label="${esc(t.ch)}">${esc(t.ch)}</button>`).join(''):'<span class="faint" style="font-size:.9rem">字母都用完啦</span>';
+    $('#sp-check').disabled=st.done||st.slots.some(x=>!x)}
+  app.innerHTML=head+`<div class="qbox spq" style="--s:${size}px">
+    <div class="prompt"><div class="muted" style="margin-bottom:6px">🎧 听发音，把缺的字母拖进空格里</div>
+      <button class="btn sp-snd" data-say="${esc(w)}">🔊 听单词</button>
+      <div class="zhhint">${esc(shortZh(c.zh)||'')}</div>
+      <div id="sp-word" class="sp-word en" lang="en"></div></div>
+    <div id="sp-msg" class="sp-msg" aria-live="polite">拖一拖，或者点一下字母放进空格；点空格里的字母可以拿回来</div>
+    <div id="sp-pool" class="sp-pool" data-drop="pool"></div>
+    <div class="actions"><button class="btn" id="sp-check" data-act="spcheck" disabled>✅ 检查答案</button></div>
+    <div id="sp-after" class="actions hidden"><button class="btn" data-act="next">下一步：搭配选择 →</button></div></div>`;
+  paint();setTimeout(()=>say(w),300);
+  const msg=(h,cls)=>{const m=$('#sp-msg');m.className='sp-msg'+(cls?' '+cls:'');m.innerHTML=h};
+  const place=(id,i)=>{const cur=st.slots[i];const from=st.slots.indexOf(id);if(from>=0)st.slots[from]=cur&&!st.locked.has(i)?cur:null;st.slots[i]=id;st.wrong.delete(i);st.wrong.delete(from)};
+  const firstFree=()=>st.slots.findIndex((x,i)=>!x&&!st.locked.has(i));
+  const kit=dragKit(app.querySelector('.spq'),{
+    tap(id,el){if(st.done)return;const from=el.dataset.from;
+      if(from==='pool'){const i=firstFree();if(i<0)return;place(id,i);say(ch(id),.8)}
+      else{const i=+from.slice(1);if(st.locked.has(i))return;st.slots[i]=null;st.wrong.delete(i)}paint()},
+    drop(id,el,tg){if(st.done)return;const from=el.dataset.from;
+      if(!tg||tg.dataset.drop==='pool'){if(from!=='pool'){const i=+from.slice(1);if(!st.locked.has(i)){st.slots[i]=null;st.wrong.delete(i)}}paint();return}
+      const i=+tg.dataset.drop.slice(1);if(st.locked.has(i)){paint();return}
+      const cur=st.slots[i];if(from!=='pool'){const f=+from.slice(1);st.slots[f]=cur&&!st.locked.has(f)?cur:null}
+      st.slots[i]=id;st.wrong.delete(i);paint()}});
+  const spClick=e=>{const a=e.target.closest('[data-act="spcheck"]');if(!a||st.done)return;
+    const target=[...pl.letters];const got=st.slots.map(id=>ch(id));
+    const full=ans(),okExact=full===pl.word,alt=!okExact&&DICT.set&&DICT.set.has(full)&&got.slice().sort().join('')===target.slice().sort().join('');
+    st.tries++;
+    if(okExact||alt){st.done=true;st.wrong.clear();paint();$('#sp-word').classList.add('full');
+      $('#sp-word').innerHTML=pl.pieces.map(p=>`<span class="${p.blank?'fill':'vis'}">${esc(p.t)}</span>`).join('');
+      msg(`${PRAISE[Math.random()*PRAISE.length|0]} <b class="en">${esc(alt?full:pl.word)}</b>`,'good');$('#sp-check').classList.add('hidden');$('#sp-after').classList.remove('hidden');
+      say('Great job! '+(alt?full:pl.word));return}
+    if(st.tries===1)missOnce(w);
+    // mark wrong letters (keep the right ones), send the wrong ones back
+    const wrongIdx=[];let k=0;pl.pieces.forEach(p=>{if(p.blank)for(let j=0;j<p.t.length;j++){if(got[k]!==p.t[j])wrongIdx.push(k);k++}});
+    if(st.tries>=3){st.shownAnswer=true;st.done=true;const letters=[...pl.letters];const used=new Set();
+      st.slots=letters.map(chv=>{const t=tiles.find(t=>t.ch===chv&&!used.has(t.id));used.add(t.id);return t.id});st.wrong.clear();paint();
+      $('#sp-word').innerHTML=pl.pieces.map(p=>`<span class="${p.blank?'fill shown':'vis'}">${esc(p.t)}</span>`).join('');
+      msg(`没关系，我们一起看答案：<b class="en">${esc(pl.word)}</b>，多读几遍就记住啦 💪`,'hint');$('#sp-check').classList.add('hidden');$('#sp-after').classList.remove('hidden');say(w);return}
+    st.wrong=new Set(wrongIdx);paint();
+    const first=wrongIdx[0];
+    setTimeout(()=>{if(st.done)return;wrongIdx.forEach(i=>{if(!(st.tries===2&&i===first))st.slots[i]=null;});
+      if(st.tries===2){// hint: put the correct letter in the first wrong blank and lock it
+        const need=pl.letters[first];const t=tiles.find(t=>t.ch===need&&!st.slots.includes(t.id));if(t){st.slots[first]=t.id;st.locked.add(first)}}
+      st.wrong.clear();paint()},900);
+    msg(st.tries===1?'差一点点！红色的字母放错了，听一听发音再试试 🎧':'再想想～我帮你放好了第一个错的空格 💡','bad');say(w,.8)};
+  app.addEventListener('click',spClick);
+  bindLearn(w,()=>{kit();app.removeEventListener('click',spClick)})}
+
+/* ④ 句子重组 */
+function renderSent(w,head,c){const L=S.session.learn;const rec=S.words[w]||{};const sp=sentenceFor(w);
+  const tok=sp.tokens;const tiles=sp.mix.map(i=>({id:'w'+i,i,t:tok[i]}));
+  const st={pool:tiles.map(t=>t.id),ans:[],tries:0,done:false,bad:new Set(),shown:false};
+  const byId=id=>tiles.find(t=>t.id===id);
+  const full=tok.join(' ')+sp.end;
+  const hl=t=>PH.wordsOf(t).some(x=>hiMatch(x,w));
+  const zhOf=(rec.szh||'').trim();
+  function paint(){
+    $('#sn-ans').innerHTML=(st.ans.length?st.ans.map((id,k)=>{const t=byId(id);return `<button class="tb wd${st.bad.has(id)?' bad':''}${st.done?' ok lock':''}${hl(t.t)&&st.done?' hl':''}" data-id="${id}" data-from="ans" data-k="${k}" lang="en">${esc(t.t)}</button>`}).join(''):'<span class="faint ph">把单词拖到这里 ↓</span>')+(sp.end?`<span class="endm">${esc(sp.end)}</span>`:'');
+    $('#sn-pool').innerHTML=st.pool.length?st.pool.map(id=>`<button class="tb wd" data-id="${id}" data-from="pool" lang="en">${esc(byId(id).t)}</button>`).join(''):'<span class="faint" style="font-size:.9rem">单词都用完啦</span>';
+    $('#sn-check').disabled=st.done||st.pool.length>0}
+  app.innerHTML=head+`<div class="qbox snq">
+    <div class="prompt"><div class="muted" style="margin-bottom:6px">🧩 把单词排成正确的句子（目标词 <b class="en">${esc(w)}</b>）</div>
+      ${zhOf?`<div class="szh3">${esc(zhOf)}</div>`:`<div class="szh3">${esc(shortZh(c.zh)||'')}</div>`}
+      ${sp.partial?'<div class="note" style="margin-top:2px">上面是整句的意思；这一步只排其中一小段英文</div>':''}
+      <button class="btn sp-snd" data-say="${esc(full)}" style="margin-top:8px">🔊 听这句话</button></div>
+    <div id="sn-ans" class="sn-ans" data-drop="ans"></div>
+    <div id="sn-msg" class="sp-msg" aria-live="polite">拖一拖，或者依次点单词；点上面的单词可以放回去</div>
+    <div id="sn-pool" class="sn-pool" data-drop="pool"></div>
+    <div class="actions"><button class="btn" id="sn-check" data-act="sncheck" disabled>✅ 检查答案</button></div>
+    <div id="sn-after" class="actions hidden"><button class="btn" data-act="next">${L.i+1<L.list.length?'下一步：用法场景 →':'下一步：用法场景 →'}</button></div></div>`;
+  paint();
+  const msg=(h,cls)=>{const m=$('#sn-msg');m.className='sp-msg'+(cls?' '+cls:'');m.innerHTML=h};
+  const remove=id=>{st.pool=st.pool.filter(x=>x!==id);st.ans=st.ans.filter(x=>x!==id)};
+  const insertAt=(x,y)=>{const els=$$('#sn-ans .tb');let n=0;for(const e of els){if(e.classList.contains('dragging'))continue;const r=e.getBoundingClientRect();
+      if(y>r.bottom||(y>=r.top&&x>r.left+r.width/2))n++;}return n};
+  const kit=dragKit(app.querySelector('.snq'),{
+    tap(id,el){if(st.done)return;st.bad.delete(id);if(el.dataset.from==='pool'){remove(id);st.ans.push(id)}else{remove(id);st.pool.push(id)}paint()},
+    drop(id,el,tg,x,y){if(st.done)return;st.bad.clear();
+      if(tg&&tg.dataset.drop==='ans'){const wasIdx=st.ans.indexOf(id);let at=insertAt(x,y);remove(id);if(wasIdx>=0&&wasIdx<at)at--;st.ans.splice(Math.max(0,Math.min(at,st.ans.length)),0,id)}
+      else if(el.dataset.from==='ans'){remove(id);st.pool.push(id)}
+      paint()}});
+  const onClick=e=>{const a=e.target.closest('[data-act="sncheck"]');if(!a||st.done)return;
+    st.tries++;const mine=st.ans.map(id=>byId(id).t);
+    if(mine.join(' ')===tok.join(' ')){st.done=true;st.bad.clear();paint();msg(`${PRAISE[Math.random()*PRAISE.length|0]} 句子排对啦，听一听：`,'good');
+      $('#sn-check').classList.add('hidden');$('#sn-after').classList.remove('hidden');say(full);return}
+    if(st.tries===1)missOnce(w);
+    if(st.tries>=3){st.shown=true;st.done=true;st.ans=tok.map((t,i)=>tiles.find(x=>x.i===i).id);st.pool=[];st.bad.clear();paint();
+      msg(`没关系，正确的句子是：<br><b class="en">${esc(full)}</b>`,'hint');$('#sn-check').classList.add('hidden');$('#sn-after').classList.remove('hidden');say(full);return}
+    st.bad=new Set(st.ans.filter((id,k)=>byId(id).t!==tok[k]));paint();
+    msg(st.tries===1?'快排好啦！红色的单词位置不对，换一换 🔁':`再试试～第一个单词是 <b class="en">${esc(tok[0])}</b> 💡`,'bad')};
+  app.addEventListener('click',onClick);
+  bindLearn(w,()=>{kit();app.removeEventListener('click',onClick)})}
+
 function finishLearn(){const list=S.session.learn.list;S.session.learn=null;S.session.review={list,phase:'match',round:0,missed:[],queue:[]};save();
   const left=queuedWords().length;
   if(!left){app.innerHTML=`<div class="empty"><div class="e">🎉</div><h2>学习完成！${list.length} 个单词</h2>马上进入复习区…</div>`;
