@@ -5,7 +5,7 @@
 //   reader:mybook:<user>:<id>             source JSON (page img -> /api/reader/mybooks/<id>/img/<n>)
 //   reader:mybookimg:<user>:<id>:<n>      KV image: {"t":"image/jpeg","b":"<base64>"}  OR  {"blob":"<private blob url>","t":...}
 // Images are only ever served through the authenticated route, and only to the book's owner.
-import { kvDel, kvExists, kvGet, kvMGet, kvSet } from "@/lib/reader/store";
+import { kvDel, kvExists, kvGet, kvMGet, kvSet, kvStats } from "@/lib/reader/store";
 import { blobConfigured, safeUser } from "@/lib/reader/blob";
 
 export const BOOK_ID_RE = /^[a-z0-9][a-z0-9_-]{2,40}$/;
@@ -115,4 +115,33 @@ export async function deleteBook(user: string, id: string) {
   await kvDel(kBook(user, id));
   await kvSet(kIdx(user), JSON.stringify(items.filter((x) => x.id !== id)));
   return { removed: !!it, images };
+}
+
+
+// ---------- in-app batch upload (browser -> account): ids, KV budget, sanity checks ----------
+export const BATCH_ID_RE = /^up-[a-z0-9]{6,30}$/;
+export const BATCH_MAX_PAGES = 40;
+/** KV is the only image store when no Blob store is connected: stop well before the Upstash free-tier limit. */
+export const kvBudgetBytes = () => Number(process.env.READER_KV_BUDGET_MB || 150) * 1048576;
+export async function kvHeadroom() {
+  const st = await kvStats();
+  const budget = kvBudgetBytes();
+  return { usedBytes: st.usedBytes, budgetBytes: budget, freeBytes: st.usedBytes == null ? null : Math.max(0, budget - st.usedBytes) };
+}
+export const isJpeg = (b: Uint8Array) => b.length > 4 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
+
+/** Validate a client-assembled multi-page source (strings are always escaped when shown; img is rewritten by saveBook). */
+export function checkBatchSource(src: any): string | null {
+  if (!src || typeof src !== "object") return "bad source";
+  const { pages, sentences, words } = src;
+  if (!Array.isArray(pages) || !Array.isArray(sentences) || !Array.isArray(words)) return "bad source";
+  if (pages.length < 1 || pages.length > BATCH_MAX_PAGES) return `pages must be 1-${BATCH_MAX_PAGES}`;
+  if (sentences.length > 4000 || words.length > 8000) return "source too large";
+  pages.forEach((p: any, i: number) => { if (Number(p?.n) !== i + 1 || !Array.isArray(p?.s)) throw new Error("bad page"); });
+  const ok = sentences.every((s: any, i: number) => s && s.id === i && typeof s.en === "string" && s.en.length < 2000 && Array.isArray(s.t) && Number.isInteger(s.p) && s.p >= 1 && s.p <= pages.length
+    && (s.zh == null || (typeof s.zh === "string" && s.zh.length < 2000)));
+  if (!ok) return "bad sentences";
+  if (!pages.every((p: any) => p.s.every((i: any) => Number.isInteger(i) && i >= 0 && i < sentences.length))) return "bad page sentences";
+  if (!words.every((w: any) => w && typeof w.w === "string" && w.w.length < 60 && Array.isArray(w.pages))) return "bad words";
+  return null;
 }

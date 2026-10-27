@@ -35,7 +35,7 @@ async function pullServer(){if(!CFG.progressEndpoint)return;try{const r=await fe
 function mark(){const d=today();S.log[d]=(S.log[d]||0)+1}
 
 /* uploaded sources live in IndexedDB (photos can be large) */
-const IDB={db:null,open(){return this.db||(this.db=new Promise((ok,no)=>{const r=indexedDB.open('tt2-'+USER,1);r.onupgradeneeded=()=>r.result.createObjectStore('src',{keyPath:'id'});r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)}))},
+const IDB={db:null,open(){return this.db||(this.db=new Promise((ok,no)=>{const r=indexedDB.open('tt2-'+USER,2);r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('src'))d.createObjectStore('src',{keyPath:'id'});if(!d.objectStoreNames.contains('drafts'))d.createObjectStore('drafts',{keyPath:'k'})};r.onsuccess=()=>ok(r.result);r.onerror=()=>no(r.error)}))},
   async tx(mode,fn){const db=await this.open();return new Promise((ok,no)=>{const t=db.transaction('src',mode),st=t.objectStore('src'),r=fn(st);t.oncomplete=()=>ok(r&&r.result);t.onerror=()=>no(t.error)})},
   all(){return this.tx('readonly',s=>s.getAll())},get(id){return this.tx('readonly',s=>s.get(id))},put(o){return this.tx('readwrite',s=>s.put(o))},del(id){return this.tx('readwrite',s=>s.delete(id))}};
 
@@ -582,16 +582,18 @@ function mergeSources(parts,title){const out={id:parts[0].id,title,kind:'photo',
   const ai=parts.map(x=>x._ai).filter(Boolean);if(ai.length)out._ai={model:ai[ai.length-1].model,ms:ai.reduce((t,x)=>t+(x.ms||0),0)};return out}
 function viewUpload(){nav('upload');
   app.innerHTML=`<div class="zone-h"><span class="tag">📥 上传学习来源</span></div>
-  <div class="card"><p style="margin-top:0">拍一张英文绘本/作业的照片、截一张屏，或者录一段英文，系统会自动识别成 <b>可以点击学习的原文</b>。</p>
+  <div id="batch" class="batch"></div>
+  <div class="card" style="margin-top:14px"><p style="margin-top:0">拍一张英文绘本/作业的照片、截一张屏，或者录一段英文，系统会自动识别成 <b>可以点击学习的原文</b>。</p>
   <input type="text" id="utitle" placeholder="给它起个名字（可选），例如：Unit 3 课文 / 睡前故事录音">
   <div class="upgrid">
    <label class="upbtn"><span>📷</span>拍照<small>绘本、课本、作业单</small><input type="file" accept="image/*" capture="environment" id="fPhoto" hidden></label>
-   <label class="upbtn"><span>🖼</span>选择照片 / 截屏<small>可以一次选多页，合成一本</small><input type="file" accept="image/*" id="fShot" multiple hidden></label>
+   <label class="upbtn"><span>🖼</span>选择照片 / 截屏<small>一两张照片或截屏（整本书请用上面的批量上传）</small><input type="file" accept="image/*" id="fShot" multiple hidden></label>
    <label class="upbtn"><span>🎧</span>上传录音文件<small>m4a / mp3 / wav</small><input type="file" accept="audio/*,.m4a,.mp3,.wav,.webm" id="fAudio" hidden></label>
    <button class="upbtn rec" id="recBtn" type="button"><span>🎙</span><b id="recL">现场录音</b><small>点一下开始，再点结束</small></button>
   </div>
   <details><summary class="muted">✏️ 或者直接粘贴英文文字</summary><textarea id="utext" placeholder="Paste English text here…"></textarea><div class="actions"><button class="btn" id="textGo">生成学习来源</button></div></details>${limitNote()}</div>
   <div id="ures" style="margin-top:14px"></div>`;
+  if(window.TTBatch)TTBatch.mount($('#batch'));
   const res=$('#ures'),title=()=>$('#utitle').value.trim();let busy=false;
   const run=async(fn,label)=>{if(busy)return;busy=true;res.innerHTML=`<div class="card center"><span class="spin"></span> <span id="prog">${label}</span>（可能需要十几秒）</div>`;
     try{const j=await fn();await IDB.put(j);delete BOOKS['u:'+j.id];showResult(j)}
@@ -657,6 +659,7 @@ async function boot(){
   $('#user').innerHTML=`<span>👤 ${esc(USER)}</span>${CFG.logoutUrl?`<button id="logout">退出</button>`:''}`;
   if(CFG.logoutUrl)$('#logout').onclick=async()=>{await fetch(CFG.logoutUrl,{method:'POST'}).catch(()=>{});location.href=CFG.loginUrl||'/'};
   route()}
+window.TT_API={$,$$,esc,toast,CFG,mergeSources,refreshMe,getME:()=>ME,resetMine:()=>{MINE=null},idbOpen:()=>IDB.open()};
 boot();
 window.TT_DEBUG={get S(){return S},save,route};
 })();
