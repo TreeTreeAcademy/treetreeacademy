@@ -38,3 +38,5 @@ export function checkPassword(name: string, password: string): string | null {
   const got = scryptSync(password, Buffer.from(salt, "base64url"), want.length || 32);
   return rec && want.length === got.length && timingSafeEqual(want, got) ? user : null;
 }
+
+export function listUsers(): string[] { return [...users().keys()]; }

@@ -4,13 +4,14 @@
 import { requireUser, unauthorized } from "@/lib/reader/session";
 import { cachedTts, generateTts, generateTtsBatch, normText, purgeOld, ttsKey, VOICES } from "@/lib/reader/tts";
 import { kvExists } from "@/lib/reader/store";
+import { kkKey, kokoroClip, recordWant } from "@/lib/reader/kokoro";
 import { consume, remaining } from "@/lib/reader/limits";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const audio = (b: Buffer) => new Response(new Uint8Array(b), { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "private, max-age=31536000, immutable" } });
+const audio = (b: Buffer, src = "gemini") => new Response(new Uint8Array(b), { headers: { "Content-Type": "audio/mpeg", "x-tts-src": src, "Cache-Control": src === "kokoro" ? "private, max-age=31536000, immutable" : "private, max-age=3600" } });
 const none = (why: string) => new Response(null, { status: 204, headers: { "x-tts": why, "Cache-Control": "no-store" } });
 
 export async function GET(req: Request) {
@@ -20,6 +21,9 @@ export async function GET(req: Request) {
   const u = new URL(req.url);
   const t = normText(u.searchParams.get("t") || ""), v = u.searchParams.get("v") || "n";
   if (!t || !/[a-z]/i.test(t) || !VOICES[v]) return none("bad");
+  const kk = await kokoroClip(t, v);
+  if (kk) return audio(kk, "kokoro");
+  await recordWant(t, v);
   const hit = await cachedTts(t, v);
   if (hit) return audio(hit);
   if (u.searchParams.get("c") === "1") return none("miss");
@@ -43,7 +47,10 @@ export async function POST(req: Request) {
   const v = VOICES[body?.v] ? body.v : "n";
   const items: string[] = [...new Set<string>((Array.isArray(body?.items) ? body.items : []).map((x: any) => normText(String(x || ""))).filter((x: string) => x && x.length <= 40 && /[a-z]/i.test(x)))].slice(0, 16);
   if (!items.length) return Response.json({ ready: [] });
-  const have = await kvExists(items.map((x) => ttsKey(x, v)));
+  const kkHave = await kvExists(items.map((x) => kkKey(x, v)));
+  items.forEach((x, i) => { if (!kkHave[i]) recordWant(x, v); });
+  const gHave = await kvExists(items.map((x) => ttsKey(x, v)));
+  const have = items.map((_, i) => kkHave[i] || gHave[i]);
   const ready = items.filter((_, i) => have[i]), need = items.filter((_, i) => !have[i]);
   if (!need.length || !process.env.GEMINI_API_KEY) return Response.json({ ready, missing: need });
   if ((await remaining("tts", user)) <= 0) return Response.json({ ready, missing: need, detail: "daily_limit" });

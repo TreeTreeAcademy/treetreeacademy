@@ -29,11 +29,11 @@ const NV={tried:{},buf:{},miss:{},pend:{},off:0,tok:0,ctx:null,src:null,el:null,
   /* resolves to an AudioBuffer (Web Audio) or a blob URL (fallback), or null */
   get(t,v,cacheOnly){const k=this.key(t,v);if(this.buf[k])return Promise.resolve(this.buf[k]);if(this.miss[k]&&(cacheOnly||Date.now()<this.miss[k]))return Promise.resolve(null);
     const pk=k+(cacheOnly?'#c':'');if(this.pend[pk])return this.pend[pk];
-    const q=`${CFG.ttsEndpoint}?v=${v}&t=${encodeURIComponent(this.norm(t))}${cacheOnly?'&c=1':''}&k=3`;
+    const q=`${CFG.ttsEndpoint}?v=${v}&t=${encodeURIComponent(this.norm(t))}${cacheOnly?'&c=1':''}&k=4`;
     return this.pend[pk]=fetch(q,{credentials:'same-origin'}).then(r=>{
-        if(r.status===200)return r.arrayBuffer().then(ab=>{const c=this.ac();
-          if(!c)return this.buf[k]=URL.createObjectURL(new Blob([ab],{type:'audio/mpeg'}));
-          return new Promise((res,rej)=>c.decodeAudioData(ab,res,rej)).then(b=>this.buf[k]=b)});
+        if(r.status===200)return r.arrayBuffer().then(ab=>{const c=this.ac(),u=URL.createObjectURL(new Blob([ab],{type:'audio/mpeg'}));
+          if(!c)return this.buf[k]={u};
+          return new Promise((res,rej)=>c.decodeAudioData(ab.slice(0),res,rej)).then(b=>this.buf[k]={b,u},()=>this.buf[k]={u})});
         const why=r.headers.get('x-tts');if(why==='quota'||why==='daily_limit'||why==='ai_not_configured')this.off=Date.now()+30*60e3;
         this.miss[k]=Date.now()+(cacheOnly?5*60e3:60e3);return null})
       .catch(()=>null).finally(()=>delete this.pend[pk])},
@@ -44,14 +44,20 @@ const NV={tried:{},buf:{},miss:{},pend:{},off:0,tok:0,ctx:null,src:null,el:null,
     return chunks.reduce((p,ch)=>p.then(()=>fetch(CFG.ttsEndpoint,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({v,items:ch})})
       .then(r=>r.ok?r.json():{}).then(j=>{if(j&&(j.detail==='quota'||j.detail==='daily_limit'))this.off=Date.now()+30*60e3;
         (j&&j.ready||[]).forEach(x=>{delete this.miss[this.key(x,v)];this.get(x,v,true)})}).catch(()=>{})),Promise.resolve())},
+  /* preload the clips for what's on screen (cache-only: free, and tells the box which clips are wanted) */
+  wq:[],wn:0,wt:0,
+  warm(){clearTimeout(this.wt);this.wt=setTimeout(()=>{const app=document.getElementById('app');if(!app||!CFG.ttsEndpoint)return;const seen=new Set();
+    app.querySelectorAll('[data-say],[data-w]').forEach(el=>{const t=el.dataset.say||(el.dataset.sid!=null?el.textContent:el.dataset.w);if(!t)return;const n=this.norm(t).toLowerCase();if(seen.has(n)||seen.size>=120)return;seen.add(n);
+      if(!this.buf[this.key(t,'n')])this.wq.push(t)});this.pump()},250)},
+  pump(){while(this.wn<4&&this.wq.length){const t=this.wq.shift();this.wn++;this.get(t,'n',true).finally(()=>{this.wn--;this.pump()})}},
   prefetch(t,v){if(this.ok(t)&&this.gen())this.get(t,v)},
   stop(){this.tok++;if(this.src){try{this.src.onended=null;this.src.stop()}catch(e){}this.src=null}if(this.el){try{this.el.pause();this.el.currentTime=0}catch(e){}}},
   hush(){this.stop();if(TTS.ok)speechSynthesis.cancel()},
   out(b,rate,cb,fb){const c=this.ac();
-    if(c&&b instanceof AudioBuffer){this.unlock();const s=c.createBufferSource(),g=c.createGain();s.buffer=b;s.playbackRate.value=rate;
+    if(c&&b.b&&Math.abs(rate-1)<.06){b=b.b;rate=1;this.unlock();const s=c.createBufferSource(),g=c.createGain();s.buffer=b;s.playbackRate.value=rate;
       const now=c.currentTime,d=b.duration/rate;g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(1,now+.01);g.gain.setValueAtTime(1,Math.max(now+.01,now+d-.04));g.gain.linearRampToValueAtTime(0,now+d);
       s.connect(g).connect(c.destination);s.onended=()=>{if(this.src===s)this.src=null;cb&&cb()};this.src=s;s.start();return}
-    const a=this.el||(this.el=new Audio());a.src=b;a.playbackRate=rate;a.onended=cb||null;a.play().catch(()=>fb())},
+    const a=this.el||(this.el=new Audio());a.src=b.u;a.preservesPitch=true;a.playbackRate=rate;a.onended=cb||null;a.play().catch(()=>fb())},
   /* fb(): speechSynthesis fallback, used only when no natural clip can be had within ~7s */
   play(t,v,rate,fb,cb){this.unlock();if(TTS.ok)speechSynthesis.cancel();this.stop();const my=this.tok;this.t0=Date.now();
     if(!this.ok(t)){fb();return}
@@ -62,7 +68,7 @@ document.addEventListener('pointerdown',()=>NV.unlock(),{passive:true});
 /* stop any speech when the screen changes (route/step re-render), the tab is hidden, or the page is left */
 document.addEventListener('visibilitychange',()=>{if(document.hidden)NV.hush()});
 window.addEventListener('pagehide',()=>NV.hush());
-if(app&&window.MutationObserver)new MutationObserver(()=>{if(Date.now()-(NV.t0||0)>120)NV.hush()}).observe(app,{childList:true});window.addEventListener('hashchange',()=>NV.hush());
+if(app&&window.MutationObserver)new MutationObserver(()=>{if(Date.now()-(NV.t0||0)>120)NV.hush();NV.warm()}).observe(app,{childList:true});window.addEventListener('hashchange',()=>NV.hush());
 const say=(t,r,cb)=>NV.play(t,'n',(r||TTS.rate)/.9,()=>TTS.speak(t,r,cb),cb);
 
 /* ---------- user + storage ---------- */

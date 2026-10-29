@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { generateJSON } from "@/lib/reader/ai";
 import { kvMGet, kvSet } from "@/lib/reader/store";
 import { similarity } from "@/lib/reader/enrich";
+import { recordWant } from "@/lib/reader/kokoro";
 
 export type TalkLine = { en: string; zh: string };
 export type Talk = { an: string; ae: string; bn: string; be: string; a: TalkLine; ok: TalkLine; wrong: TalkLine[] };
@@ -80,6 +81,8 @@ export async function generateTalk(items: { id: string; words: string[]; hint: s
     };
     out[it.id] = t;
     await kvSet(talkKey(it.id), JSON.stringify(t));
+    // tell the box voice job about the new lines right away
+    void Promise.all([recordWant(t.a.en, "a"), recordWant(t.ok.en, "b"), ...t.wrong.map((w) => recordWant(w.en, "b"))]).catch(() => {});
   }
   return { talks: out, model: r.model, ms: r.ms };
 }

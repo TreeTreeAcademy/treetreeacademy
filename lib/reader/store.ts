@@ -111,3 +111,26 @@ export async function kvDelMatch(match: string, maxRounds = 200): Promise<number
   if (n) persist();
   return n;
 }
+
+/** SET only if absent (with TTL). */
+export async function kvSetNx(k: string, v: string, ttlSec: number) {
+  if (kvConfig()) { await upstash([["SET", k, v, "NX", "EX", ttlSec]]); return; }
+  const m = await local(); if (!alive(m.get(k))) { m.set(k, { v, exp: Date.now() + ttlSec * 1000 }); persist(); }
+}
+/** Keys matching a glob (SCAN-based; bounded). */
+export async function kvKeys(match: string, max = 20000): Promise<string[]> {
+  const out: string[] = [];
+  if (kvConfig()) {
+    let cur = "0";
+    for (let i = 0; i < 400 && out.length < max; i++) {
+      const [res] = await upstash([["SCAN", cur, "MATCH", match, "COUNT", 1000]]);
+      if (!Array.isArray(res)) break;
+      cur = String(res[0]); out.push(...(res[1] || []));
+      if (cur === "0") break;
+    }
+    return out.slice(0, max);
+  }
+  const m = await local(); const re = new RegExp("^" + match.split("*").map((x) => x.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*") + "$");
+  for (const [k, r] of m) if (alive(r) && re.test(k)) out.push(k);
+  return out.slice(0, max);
+}

@@ -67,4 +67,9 @@ fi
 
 # 3) AI + assemble + upload
 cd "$REPO"
-exec "$TSX" "$HERE/import-book.ts" --work "$WORK" "${PASS[@]}"
+"$TSX" "$HERE/import-book.ts" --work "$WORK" "${PASS[@]}"
+# 4) natural voice for the new book (Kokoro on the box; non-fatal — the 30-min catch-up job retries)
+case " ${PASS[*]} " in *" --dry-run "*) ;; *)
+  KPY="${KOKORO_PY:-/workspace/kokoro/v/bin/python}"
+  if [ -x "$KPY" ]; then echo "🔊 生成真人发音（Kokoro）…"; "$KPY" "$REPO/scripts/kokoro-tts/kokoro_tts.py" --full ${SITE:+--site "$SITE"} || echo "⚠️  发音生成没完成，后台任务会自动补上"; fi ;;
+esac
