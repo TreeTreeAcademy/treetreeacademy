@@ -18,7 +18,29 @@ const TTS={ok:'speechSynthesis' in window,v:null,rate:.9,
   speak(t,rate,onend){if(!this.ok){toast('这个浏览器不支持朗读');return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);
     const v=this.v||this.pick();if(v)u.voice=v;u.lang='en-US';u.rate=rate||this.rate;if(onend)u.onend=onend;speechSynthesis.speak(u);return u}};
 if(TTS.ok){TTS.pick();speechSynthesis.onvoiceschanged=()=>TTS.pick()}
-const say=(t,r,cb)=>TTS.speak(t,r,cb);
+/* ---------- Natural voice (server Gemini TTS, cached) with silent speechSynthesis fallback ---------- */
+const NV={url:{},pend:{},off:0,el:null,tok:0,
+  key:(t,v)=>v+'|'+String(t).replace(/\s+/g,' ').trim(),
+  ok(t){return !!CFG.ttsEndpoint&&Date.now()>this.off&&t&&String(t).length<=300&&/[a-z]/i.test(t)},
+  gen(){return /^#\/(learn|review)/.test(location.hash)},
+  get(t,v,cacheOnly){const k=this.key(t,v);if(this.url[k])return Promise.resolve(this.url[k]);if(this.url[k]===null&&cacheOnly)return Promise.resolve(null);
+    const pk=k+(cacheOnly?'#c':'');if(this.pend[pk])return this.pend[pk];
+    const q=`${CFG.ttsEndpoint}?v=${v}&t=${encodeURIComponent(String(t).replace(/\s+/g,' ').trim())}${cacheOnly?'&c=1':''}`;
+    return this.pend[pk]=fetch(q,{credentials:'same-origin'}).then(r=>{
+        if(r.status===200)return r.blob().then(b=>this.url[k]=URL.createObjectURL(b));
+        const why=r.headers.get('x-tts');if(why==='quota'||why==='daily_limit'||why==='ai_not_configured')this.off=Date.now()+30*60e3;
+        if(cacheOnly)this.url[k]=this.url[k]||null;return null})
+      .catch(()=>null).finally(()=>delete this.pend[pk])},
+  prefetch(t,v){if(this.ok(t))this.get(t,v)},
+  stop(){this.tok++;if(this.el){try{this.el.pause()}catch(e){}}},
+  /* fb(): speechSynthesis fallback; plays natural audio if ready within ~4s */
+  play(t,v,rate,fb,cb){if(TTS.ok)speechSynthesis.cancel();NV.stop();this.stop();const my=this.tok;
+    if(!this.ok(t)){fb();return}
+    let done=false;const timer=setTimeout(()=>{if(!done&&my===this.tok){done=true;fb()}},4000);
+    this.get(t,v,!this.gen()).then(u=>{if(done||my!==this.tok)return;done=true;clearTimeout(timer);
+      if(!u){fb();return}const a=this.el||(this.el=new Audio());a.src=u;a.playbackRate=Math.max(.5,Math.min(1.3,rate||1));a.onended=cb||null;
+      a.play().catch(()=>fb())})}};
+const say=(t,r,cb)=>NV.play(t,'n',(r||TTS.rate)/.9,()=>TTS.speak(t,r,cb),cb);
 
 /* ---------- user + storage ---------- */
 let USER='demo',ME={};
@@ -463,7 +485,7 @@ function viewReview(){nav('review');let R=S.session.review;
     R=S.session.review={list:l,phase:'match',round:0,missed:[],queue:[]};save()}
   R.phase==='match'?renderMatch():R.phase==='talk'?renderTalk():renderDialog()}
 function rounds(list){const n=Math.ceil(list.length/5),out=[];const size=Math.ceil(list.length/n);for(let i=0;i<list.length;i+=size)out.push(list.slice(i,i+size));return out}
-function renderMatch(){const R=S.session.review;const rs=rounds(R.list);if(!R.round&&!R.tpre){R.tpre=1;R.tg=talkGroups(R.list);fetchTalk(R.tg)}if(R.round>=rs.length){return afterMatch()}
+function renderMatch(){const R=S.session.review;const rs=rounds(R.list);if(!R.round&&!R.tpre){R.tpre=1;R.tg=talkGroups(R.list);fetchTalk(R.tg).then(()=>prefetchTalkAudio(R.tg))}if(R.round>=rs.length){return afterMatch()}
   const set=rs[R.round];const left=shuffle(set),right=shuffle(set);let sel=null,left2=set.length;
   app.innerHTML=`<div class="zone-h"><span class="tag rv">🔁 复习区 · 连连看</span><b>第 ${R.round+1} / ${rs.length} 轮</b><div class="bar"><b style="width:${R.round/rs.length*100}%"></b></div></div>
    <p class="muted center">先点英文，再点对应的中文。配错的单词会进入「情景对话」继续练习。</p>
@@ -491,12 +513,14 @@ function fetchTalk(groups){const ids=groups.map(tId);const wait=ids.filter(i=>TK
   const need=groups.filter(g=>!S.talk[tId(g)]&&!TK.busy[tId(g)]).slice(0,8);
   if(!need.length||!CFG.talkEndpoint)return Promise.all(wait);
   const pr=fetch(CFG.talkEndpoint,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({groups:need.map(g=>({words:g,hint:g.map(w=>shortZh(content(w).zh)).join('；')}))})})
-    .then(r=>r.ok?r.json():{}).then(j=>{TK.detail=j&&j.detail;let n=0;for(const[k,t]of Object.entries((j&&j.talks)||{})){S.talk[k]=t;n++}if(n)save()})
+    .then(r=>r.ok?r.json():{}).then(j=>{TK.detail=j&&j.detail;let n=0;for(const[k,t]of Object.entries((j&&j.talks)||{})){S.talk[k]=t;n++}if(n)save();prefetchTalkAudio(groups)})
     .catch(()=>{}).then(()=>need.forEach(g=>delete TK.busy[tId(g)]));
   need.forEach(g=>TK.busy[tId(g)]=pr);return Promise.all([pr,...wait])}
+function prefetchTalkAudio(groups){groups.slice(0,4).forEach(g=>{const t=S.talk[tId(g)];if(t)NV.prefetch(t.a.en,'a')})}
 function talkVoice(who){const vs=TTS.ok?speechSynthesis.getVoices().filter(x=>/^en[-_](US|GB|AU)$/i.test(x.lang)):[];if(!vs.length)return null;
   const a=TTS.v||TTS.pick();if(who==='a')return a;return vs.find(x=>x!==a&&/en[-_]US/i.test(x.lang))||vs.find(x=>x!==a)||a}
-function sayAs(t,who,rate){if(!TTS.ok){toast('这个浏览器不支持朗读');return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);
+function sayAs(t,who,rate){NV.play(t,who,(rate||.88)/.88,()=>sayAsSynth(t,who,rate))}
+function sayAsSynth(t,who,rate){if(!TTS.ok){toast('这个浏览器不支持朗读');return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);
   const v=talkVoice(who);if(v)u.voice=v;u.lang=(v&&v.lang)||'en-US';u.rate=rate||.88;u.pitch=who==='a'?1.3:.8;speechSynthesis.speak(u)}
 function renderTalk(waited){const R=S.session.review;if(!R.tq||!R.tq.length){R.phase='dlg';R.queue=[...R.missed];save();return R.queue.length?renderDialog():finishReview(!R.tmiss)}
   const g=R.tq[0],id=tId(g),t=S.talk[id];const done=R.tn-R.tq.length;
@@ -505,7 +529,7 @@ function renderTalk(waited){const R=S.session.review;if(!R.tq||!R.tq.length){R.p
       fetchTalk(R.tq).then(()=>{const r2=S.session.review;if(location.hash.startsWith('#/review')&&r2&&r2.phase==='talk'&&r2.tq&&tId(r2.tq[0]||[])===id)renderTalk(true)});return}
     // AI unavailable (quota / offline): skip this group, words still reviewed in the other steps
     toast(TK.detail==='daily_limit'?'今天的 AI 对话额度用完了，先跳过这一段':'AI 对话暂时生成不了，先跳过这一段',2200);R.tq.shift();save();return renderTalk()}
-  if(R.tq.length>1)fetchTalk(R.tq.slice(1));
+  if(R.tq.length>1)fetchTalk(R.tq.slice(1)).then(()=>prefetchTalkAudio(R.tq.slice(1,2)));NV.prefetch(t.ok.en,'b');
   const opts=shuffle([t.ok,...t.wrong.slice(0,3)]);
   app.innerHTML=head+`<div class="tkq">
    <div class="center" style="margin-bottom:10px"><span class="target">🎯 ${g.map(w=>`<b class="en">${esc(w)}</b> ${esc(shortZh(content(w).zh))}`).join(' · ')}</span></div>
@@ -520,7 +544,7 @@ function renderTalk(waited){const R=S.session.review;if(!R.tq||!R.tq.length){R.p
   setTimeout(()=>sayAs(t.a.en,'a'),350);let answered=false;
   const onClick=e=>{const sp=e.target.closest('[data-say]');if(sp){say(sp.dataset.say);return}
     const a=e.target.closest('[data-tk]');if(!a)return;const k=a.dataset.tk;
-    if(k==='play'){sayAs(t.a.en,'a');return}if(k==='slow'){sayAs(t.a.en,'a',.6);return}
+    if(k==='play'){sayAs(t.a.en,'a');return}if(k==='slow'){sayAs(t.a.en,'a',.62);return}
     if(k==='hear'){sayAs(opts[+a.dataset.i].en,'b');return}
     if(k==='help'){const l=$('#tkq-line');l.classList.toggle('hidden');a.textContent=l.classList.contains('hidden')?'💡 求助 / 看原句':'🙈 收起原句';return}
     if(k==='ans'){if(answered)return;answered=true;const o=opts[+a.dataset.i],ok=o===t.ok;sayAs(t.ok.en,'b');
@@ -532,8 +556,6 @@ function renderTalk(waited){const R=S.session.review;if(!R.tq||!R.tq.length){R.p
       $('#tkq-res').classList.remove('hidden');save();return}
     if(k==='go'){cleanup&&cleanup();cleanup=null;renderTalk();window.scrollTo(0,0)}};
   if(cleanup)cleanup();app.addEventListener('click',onClick);cleanup=()=>app.removeEventListener('click',onClick)}
-function afterTalkLegacy(){const R=S.session.review;if(!R.missed.length)return finishReview(true);R.phase='dlg';R.queue=[...R.missed];save();
-  app.innerHTML=`<div class="empty"><div class="e">💬</div><h2>连连看完成！</h2>${R.missed.length} 个单词需要再练一练 → 情景对话</div>`;setTimeout(()=>{renderDialog()},1300)}
 function dialogFor(w){const c=content(w);
   if(c.dlg){const others=shuffle(Object.entries(LEX).filter(([k])=>k!==w).map(([,e])=>e.dlg[1])).slice(0,2);
     return{a:c.dlg[0],ok:c.dlg[1],opts:shuffle([c.dlg[1],c.dlg[2],...others])}}

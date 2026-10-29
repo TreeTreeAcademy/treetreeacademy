@@ -6,7 +6,7 @@
 import { kvGet, kvIncr } from "@/lib/reader/store";
 import { isAdmin } from "@/lib/reader/users";
 
-export type LimitKind = "uploads" | "words" | "quiz";
+export type LimitKind = "uploads" | "words" | "quiz" | "tts";
 const day = () => new Date().toISOString().slice(0, 10); // UTC day
 const k = (kind: LimitKind, user: string) => `reader:lim:${kind}:${user}:${day()}`;
 
@@ -14,6 +14,8 @@ export function maxFor(kind: LimitKind, user: string): number {
   const adm = isAdmin(user);
   const v = kind === "uploads"
     ? (adm ? process.env.READER_ADMIN_DAILY_UPLOADS : process.env.READER_DAILY_UPLOADS) || (adm ? 300 : 30)
+    : kind === "tts"
+    ? (adm ? process.env.READER_ADMIN_DAILY_TTS : process.env.READER_DAILY_TTS) || (adm ? 300 : 60)
     : kind === "quiz"
     ? (adm ? process.env.READER_ADMIN_DAILY_QUIZ : process.env.READER_DAILY_QUIZ) || (adm ? 1000 : 200)
     : (adm ? process.env.READER_ADMIN_DAILY_WORDS : process.env.READER_DAILY_WORDS) || (adm ? 1000 : 150);

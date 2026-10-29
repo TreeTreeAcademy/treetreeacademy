@@ -2,7 +2,7 @@
   "name": "treetreeacademy",
   "version": "1.0.0",
   "private": true,
-  "description": "\u6811\u513f\u5b66\u9662 \u2014 \u5c0f\u7fa4\u59d0\u59d0\u542c\u6545\u4e8b\u590d\u8ff0",
+  "description": "树儿学院 — 小群姐姐听故事复述",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
@@ -10,6 +10,7 @@
     "build:blob-client": "node scripts/build-reader-blob-client.mjs"
   },
   "dependencies": {
+    "@breezystack/lamejs": "^1.2.7",
     "@vercel/blob": "^2.8.2",
     "cmu-pronouncing-dictionary": "^3.0.0",
     "next": "^15.5.27",

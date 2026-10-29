@@ -6,6 +6,7 @@ window.TT_CONFIG = {
   enrichEndpoint: "/api/reader/enrich",   // optional AI content for words not in lexicon.js
   quizEndpoint: "/api/reader/quizopts",
   talkEndpoint: "/api/reader/talk",       // 复习区 听对话选回答 (AI dialogues, cached)   // 译文选择题 distractors (AI, cached; falls back to other sentences offline)
+  ttsEndpoint: "/api/reader/tts",         // natural Gemini TTS mp3 (cached); falls back to speechSynthesis
   progressEndpoint: "/api/reader/progress", // optional server sync (KV); falls back to localStorage only
   meEndpoint: "/api/reader/me",           // -> {user, admin, ai, blob, limits}
   sharedEndpoint: "/api/reader/shared",   // sources an admin published to all families
