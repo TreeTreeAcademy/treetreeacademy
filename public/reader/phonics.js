@@ -75,29 +75,31 @@ function bestWindow(c,at,max){const lw=t=>(String(t).toLowerCase().match(/[a-z']
     if(s===0||/[,;:.!?…]["”’)]*$/.test(c[s-1]))sc+=3;else if(STARTERS.has(lw(c[s])))sc+=2;
     sc+=n*.3;if(!best||sc>best.sc)best={sc,s,e}}
   return best?c.slice(best.s,best.e):c.slice(Math.max(0,Math.min(at-4,c.length-10)),Math.max(0,Math.min(at-4,c.length-10))+10)}
-function sentencePlan(en,target,hi,max){max=max||12;en=String(en||'').replace(/\s*(?:\.\s*){3,}/g,'… ').replace(/\s+/g,' ').trim();if(!en)return null;
+/* ④句子重组 always uses a COMPLETE sentence (never a fragment).
+   en may hold several sentences: pick the shortest-reasonable one that contains the target (≤ maxS words preferred).
+   If it has more than maxT words, the first (or last) few words are pre-placed as fixed hint tiles (pre/post) and
+   only the remaining maxT words are shuffled — the sentence shown and spoken is still the whole sentence. */
+function sentencePlan(en,target,hi,maxT,maxS){maxT=maxT||12;maxS=maxS||18;en=String(en||'').replace(/\s*(?:\.\s*){3,}/g,'… ').replace(/\s+/g,' ').trim();if(!en)return null;
   let toks=en.split(' ').filter(Boolean);
-  // glue stray punctuation tokens (". . .") to the previous word
   const t2=[];for(const t of toks){if(!/[A-Za-z0-9]/.test(t)&&t2.length)t2[t2.length-1]+=' '+t;else t2.push(t)}toks=t2;
-  let partial=false;
-  if(toks.length>max){
-    // split into clauses at , ; : and sentence ends; keep the one holding the word
-    const cl=[];let cur=[];for(const t of toks){cur.push(t);if(/[,;:.!?…]["”’)]*$/.test(t)){cl.push(cur);cur=[]}}if(cur.length)cl.push(cur);
-    let idx=cl.findIndex(c=>c.some(t=>hi&&wordsOf(t).some(x=>hi(x))));if(idx<0)idx=0;
-    let c=cl[idx];
-    for(let d=1;c.length<4&&(idx-d>=0||idx+d<cl.length)&&c.length<max;d++){if(idx-d>=0&&cl[idx-d].length+c.length<=max)c=cl[idx-d].concat(c);if(c.length<4&&idx+d<cl.length&&cl[idx+d].length+c.length<=max)c=c.concat(cl[idx+d])}
-    if(c.length>max)c=bestWindow(c,Math.max(0,c.findIndex(t=>hi&&wordsOf(t).some(x=>hi(x)))),max);
-    toks=c;partial=true}
+  // split into sentences at . ! ? … (not at commas)
+  const sents=[];let cur=[];for(const t of toks){cur.push(t);if(/[.!?…]["”’)]*$/.test(t)&&!/^(Mr|Mrs|Ms|Dr|St)\.$/i.test(t)){sents.push(cur);cur=[]}}if(cur.length)sents.push(cur);
+  const has=c=>c.some(t=>hi&&wordsOf(t).some(x=>hi(x)));
+  let cand=sents.filter(has);if(!cand.length)cand=sents;
+  const ok=cand.filter(c=>c.length>=3&&c.length<=maxS);
+  toks=(ok.length?ok[0]:cand.slice().sort((a,b)=>a.length-b.length)[0]).slice();
   let end='';
   const last=toks[toks.length-1];
-  if(partial){toks[toks.length-1]=last.replace(/[,;:]+["”’)]*$/,'')}
-  else{const m=last.match(/^(.*?[A-Za-z0-9])([.!?…]+["”’)]*|["”’)]+)$/);if(m){toks[toks.length-1]=m[1];end=m[2]}}
+  const m=last.match(/^(.*?[A-Za-z0-9])([.!?…]+["”’)]*|["”’)]+)$/);if(m){toks[toks.length-1]=m[1];end=m[2]}
   if(toks.length<3)return null;
+  let pre=[],post=[];
+  if(toks.length>maxT){const k=toks.length-maxT;const at=Math.max(0,toks.findIndex(t=>hi&&wordsOf(t).some(x=>hi(x))));
+    if(at>=k){pre=toks.slice(0,k);toks=toks.slice(k)}else{post=toks.slice(toks.length-k);toks=toks.slice(0,toks.length-k)}}
   const order=toks.map((_,i)=>i);let mix=order;
   const key=a=>a.map(i=>toks[i]).join(' ');
   for(let tries=0;tries<30;tries++){mix=order.map(i=>[Math.random(),i]).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);if(key(mix)!==key(order))break}
   if(key(mix)===key(order))mix=order.slice(1).concat(order[0]);
-  return{tokens:toks,end,partial,mix}}
+  return{tokens:toks,end,partial:false,pre,post,mix}}
 const API={chunk,plan,distractors,altWord,sentencePlan,wordsOf};
 if(typeof module!=='undefined'&&module.exports)module.exports=API;else root.TT_PH=API;
 })(typeof window!=='undefined'?window:globalThis);

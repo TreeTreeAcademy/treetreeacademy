@@ -14,7 +14,7 @@ const day = () => new Date(Date.now() - 8 * 3600e3).toISOString().slice(0, 10); 
 const exKey = (m: string) => `reader:ttsx:${m}:${day()}`;
 
 export const normText = (t: string) => t.replace(/\s+/g, " ").trim().slice(0, 300);
-export const ttsKey = (text: string, v: string) => "reader:tts:v2:" + createHash("sha1").update(v + "\n" + normText(text)).digest("hex").slice(0, 24);
+export const ttsKey = (text: string, v: string) => "reader:tts:v3:" + createHash("sha1").update(v + "\n" + normText(text)).digest("hex").slice(0, 24);
 
 export async function cachedTts(text: string, v: string): Promise<Buffer | null> {
   const s = await kvGet(ttsKey(text, v));
@@ -26,7 +26,10 @@ function pcmFrom(b64: string, mime: string): { pcm: Int16Array; rate: number } {
   if (buf.subarray(0, 4).toString() === "RIFF") {
     rate = buf.readUInt32LE(24);
     let o = 12; while (o + 8 <= buf.length && buf.subarray(o, o + 4).toString() !== "data") o += 8 + buf.readUInt32LE(o + 4);
-    buf = buf.subarray(o + 8);
+    // honour the data chunk size: Gemini WAVs carry ~6 KB of non-audio bytes AFTER the samples, which decoded as a
+    // loud ~120 ms burst at the end of every clip (the "machine shutting down" noise)
+    const size = o + 8 <= buf.length ? buf.readUInt32LE(o + 4) : 0;
+    buf = buf.subarray(o + 8, size > 0 && o + 8 + size <= buf.length ? o + 8 + size : buf.length);
   }
   const pcm = new Int16Array(buf.buffer.slice(buf.byteOffset, buf.byteOffset + (buf.length & ~1)));
   return { pcm, rate };
@@ -57,19 +60,18 @@ function toMp3(pcm: Int16Array, rate: number): Buffer {
 
 export class TtsQuota extends Error {}
 
-export async function generateTts(text: string, v: string): Promise<{ mp3: Buffer; model: string }> {
-  const voice = VOICES[v] || VOICES.n, t = normText(text);
-  void purgeV1();
+async function callTts(text: string, v: string): Promise<{ pcm: Int16Array; rate: number; model: string }> {
+  const voice = VOICES[v] || VOICES.n;
   let lastErr: any = null;
   for (const m of chain()) {
     if (await kvGet(exKey(m))) continue;
     const r = await fetch(`${base()}/models/${m}:generateContent`, {
       method: "POST", headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY || "" },
-      body: JSON.stringify({ contents: [{ parts: [{ text: t }] }],
+      body: JSON.stringify({ contents: [{ parts: [{ text }] }],
         generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: voice.name } } } } }),
     }).catch((e) => { lastErr = e; return null; });
     if (!r) continue;
-    if (r.status === 429) { // per-day → mark model exhausted; per-minute → try next model
+    if (r.status === 429) {
       const body = await r.text();
       if (/PerDay|per day|daily/i.test(body)) await kvSet(exKey(m), "1", 2 * 86400);
       lastErr = new TtsQuota(m); continue;
@@ -78,18 +80,59 @@ export async function generateTts(text: string, v: string): Promise<{ mp3: Buffe
     const j: any = await r.json();
     const part = j?.candidates?.[0]?.content?.parts?.find((p: any) => p?.inlineData?.data);
     if (!part) { lastErr = new Error(`tts ${m} empty`); continue; }
-    const { pcm, rate } = pcmFrom(part.inlineData.data, part.inlineData.mimeType || "");
-    const mp3 = toMp3(clean(pcm, rate), rate);
-    if (mp3.length < 500) { lastErr = new Error("tts short"); continue; }
-    await kvSet(ttsKey(t, v), mp3.toString("base64"));
-    return { mp3, model: m };
+    return { ...pcmFrom(part.inlineData.data, part.inlineData.mimeType || ""), model: m };
   }
   throw lastErr || new TtsQuota("all");
 }
 
-/** One-time cleanup of v1 clips (they had the style instruction spoken aloud). */
+export async function generateTts(text: string, v: string): Promise<{ mp3: Buffer; model: string }> {
+  const t = normText(text);
+  void purgeOld();
+  const { pcm, rate, model } = await callTts(t, v);
+  const mp3 = toMp3(clean(pcm, rate), rate);
+  if (mp3.length < 500) throw new Error("tts short");
+  await kvSet(ttsKey(t, v), mp3.toString("base64"));
+  return { mp3, model };
+}
+
+/** Many short items (words / short phrases) in ONE request: read as a list with pauses, then split at the N-1
+ *  longest silences. Only cached when every piece looks right (duration roughly proportional to its length). */
+export async function generateTtsBatch(items: string[], v: string): Promise<{ done: string[]; model: string }> {
+  const list = items.map(normText).filter(Boolean);
+  if (list.length < 2) { if (list[0]) await generateTts(list[0], v); return { done: list, model: "" }; }
+  const { pcm, rate, model } = await callTts(list.map((x) => x.replace(/[.!?…]+$/, "") + ".").join("\n"), v);
+  let dc = 0; for (let i = 0; i < pcm.length; i++) dc += pcm[i]; dc /= pcm.length || 1;
+  const win = Math.round(rate * 0.01), loud: boolean[] = [];
+  for (let i = 0; i < pcm.length; i += win) { let mx = 0; for (let k = i; k < Math.min(pcm.length, i + win); k++) mx = Math.max(mx, Math.abs(pcm[k] - dc)); loud.push(mx > 600); }
+  let s0 = loud.indexOf(true), e0 = loud.lastIndexOf(true);
+  if (s0 < 0) throw new Error("batch silent");
+  const gaps: { a: number; b: number }[] = [];
+  for (let i = s0; i <= e0; i++) if (!loud[i]) { let j = i; while (j <= e0 && !loud[j]) j++; gaps.push({ a: i, b: j }); i = j; }
+  const cuts = gaps.filter((g) => g.b - g.a >= 18).sort((x, y) => (y.b - y.a) - (x.b - x.a)).slice(0, list.length - 1).sort((x, y) => x.a - y.a);
+  if (cuts.length !== list.length - 1) throw new Error("batch split");
+  const bounds: [number, number][] = []; let st = s0;
+  for (const c of cuts) { bounds.push([st, c.a]); st = c.b; }
+  bounds.push([st, e0 + 1]);
+  const dur = bounds.map(([a, b]) => b - a), chars = list.map((x) => Math.max(3, x.replace(/[^a-z]/gi, "").length));
+  const per = dur.reduce((x, y) => x + y, 0) / chars.reduce((x, y) => x + y, 0);
+  if (dur.some((d, i) => d < 15 || d / (chars[i] * per) < 0.35 || d / (chars[i] * per) > 2.8)) throw new Error("batch shape");
+  const done: string[] = [];
+  for (let i = 0; i < list.length; i++) {
+    const a = Math.max(0, bounds[i][0] * win - Math.round(rate * 0.05)), b = Math.min(pcm.length, bounds[i][1] * win + Math.round(rate * 0.08));
+    const mp3 = toMp3(clean(pcm.subarray(a, b), rate), rate);
+    if (mp3.length < 400) continue;
+    await kvSet(ttsKey(list[i], v), mp3.toString("base64")); done.push(list[i]);
+  }
+  return { done, model };
+}
+
+/** One-time cleanup of old clips: v1 had the style prompt spoken aloud, v1/v2 had the trailing noise burst. */
 let purged = false;
-export async function purgeV1() {
+export async function purgeOld() {
   if (purged) return; purged = true;
-  try { if (await kvGet("reader:ttsv1purged")) return; const n = await kvDelMatch("reader:tts:v1:*"); await kvSet("reader:ttsv1purged", String(n)); } catch { purged = false; }
+  try {
+    if (await kvGet("reader:ttsv2purged")) return;
+    const n = (await kvDelMatch("reader:tts:v1:*")) + (await kvDelMatch("reader:tts:v2:*"));
+    await kvSet("reader:ttsv2purged", String(n));
+  } catch { purged = false; }
 }

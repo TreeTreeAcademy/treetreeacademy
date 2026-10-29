@@ -39,6 +39,7 @@ Return exactly 3 WRONG Chinese translations ("wrong": {kind, zh}) for each item,
 - Same length, tone and style as the correct zh (the correct answer must NOT be the longest or the most detailed).
 - Each wrong option changes ONE clear, meaningful thing so that it now CONTRADICTS the English sentence: word_meaning = the target word or another key word gets a wrong, clearly different meaning (NOT a synonym, NOT a paraphrase: a child who knows the word must be able to tell it is wrong); who_does_what = subject/object/person/animal swapped or wrong action; negation_or_opposite = negation, opposite, or wrong role/number/time.
 - Every wrong option must still read as a sensible, natural sentence a child could believe (swap in a different person/animal/object that makes sense; never swap things so the sentence becomes absurd).
+- Each wrong option must differ from the correct zh AND from the other wrong options in a clearly visible way: change the meaning of the target word AND at least one other clause/detail, so at least ~30% of the characters differ. Options that differ by only one or two characters are NOT allowed. For a long, multi-sentence zh, rewrite the sentence that contains the target word substantially.
 - A rewording, synonym or alternative natural translation of the correct sentence is NOT allowed (it would also be correct).
 - Fluent, natural Chinese. Never a typo or a wrong character, never a nonsense sentence, never also-correct, never identical to zh.
 - Do not add explanations.
@@ -47,7 +48,7 @@ Items:\n`;
 export async function cachedQuiz(items: QuizItem[]) {
   const vals = await kvMGet(items.map((x) => quizKey(x.en, x.zh)));
   const out: Record<string, string[]> = {};
-  items.forEach((x, i) => { if (vals[i]) { try { const a = JSON.parse(vals[i]!); if (Array.isArray(a) && a.length >= 2) out[x.w] = a; } catch { /* ignore */ } } });
+  items.forEach((x, i) => { if (vals[i]) { try { const a = cleanWrong(JSON.parse(vals[i]!), x.zh); if (a.length >= 2) out[x.w] = a; } catch { /* ignore */ } } });
   return out;
 }
 

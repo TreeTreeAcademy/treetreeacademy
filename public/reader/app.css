@@ -266,3 +266,4 @@ textarea{font-family:var(--en);min-height:180px}
 .tkq-opts.done .opt:not(.ok):not(.bad){opacity:.55}
 .tkq-help{border:1px dashed var(--border);background:transparent;color:var(--muted);border-radius:999px;padding:8px 16px;font-size:.9rem}
 .tkq-ai{text-align:center;font-size:.72rem;color:#6a5bc4;margin:8px 0}
+.snq .tb.snq-fix{opacity:.6;background:#eef2ea;border-style:dashed;cursor:default}

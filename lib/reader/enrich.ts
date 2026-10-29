@@ -36,7 +36,7 @@ const PROMPT = `You write learning content for Chinese children (6-12) learning 
 - zh: concise Simplified Chinese meaning with part of speech (use the example sentence to pick the sense).
 - phrases: exactly 2 real, common English collocations or idioms with the word, each with Chinese.
 - story_en / story_zh: a 2-3 sentence ORIGINAL mini story (funny or thought-provoking) using the word, plus Chinese translation.
-- story_wrong_zh: exactly 3 WRONG but plausible Chinese translations of story_en, for a multiple-choice quiz. Each has the same length and style as story_zh and changes ONE meaningful thing so that it CONTRADICTS story_en while still reading as a sensible sentence: a wrong meaning of the target word (NOT a synonym), a wrong who-does-what (a different person/animal/action that still makes sense), or a negation/opposite/role swap. Never a typo, never a synonym or rewording (that would also be correct), never identical to story_zh.
+- story_wrong_zh: exactly 3 WRONG but plausible Chinese translations of story_en, for a multiple-choice quiz. Each has the same length and style as story_zh and changes the meaning of the target word AND at least one other clause/detail (at least ~30% of the characters must differ; options differing by one or two characters are NOT allowed) so that it CONTRADICTS story_en while still reading as a sensible sentence: a wrong meaning of the target word (NOT a synonym), a wrong who-does-what (a different person/animal/action that still makes sense), or a negation/opposite/role swap. Never a typo, never a synonym or rewording (that would also be correct), never identical to story_zh.
 - dlg_prompt / dlg_right / dlg_wrong: a 1-line question or remark, a natural correct reply using the word, and a plausible but wrong reply.
 Rules: simple, kid-friendly English. Do NOT quote or imitate songs, films, books or real people; no brand names; no invented facts or attributions.
 Words (with the sentence where the child met them):\n`;
@@ -71,6 +71,19 @@ export async function generateEntries(items: { w: string; sentence?: string }[])
 }
 
 /** Keep only usable quiz distractors: non-empty, distinct, not the right answer, similar length. */
+/** Similarity 0..1 (1 - normalized edit distance) of two strings, ignoring whitespace/punctuation. */
+export function similarity(a: string, b: string): number {
+  const x = [...String(a).replace(/[\s，。！？、,.!?;；:："“”'‘’]/g, "").toLowerCase()], y = [...String(b).replace(/[\s，。！？、,.!?;；:："“”'‘’]/g, "").toLowerCase()];
+  if (!x.length && !y.length) return 1;
+  let prev = Array.from({ length: y.length + 1 }, (_, j) => j);
+  for (let i = 1; i <= x.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= y.length; j++) cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (x[i - 1] === y[j - 1] ? 0 : 1));
+    prev = cur;
+  }
+  return 1 - prev[y.length] / Math.max(x.length, y.length);
+}
+export const TOO_SIMILAR = 0.8;
 export function cleanWrong(list: unknown, right: string): string[] {
   const r = right.replace(/\s+/g, "");
   const out: string[] = [];
@@ -79,6 +92,7 @@ export function cleanWrong(list: unknown, right: string): string[] {
     const n = t.replace(/\s+/g, "").length;
     if (!t || t.replace(/\s+/g, "") === r || out.includes(t)) continue;
     if (r.length && (n < r.length * 0.5 || n > r.length * 1.7)) continue;
+    if (similarity(t, right) > TOO_SIMILAR || out.some((o) => similarity(o, t) > TOO_SIMILAR)) continue;
     out.push(t);
     if (out.length >= 3) break;
   }

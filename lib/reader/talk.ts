@@ -3,11 +3,12 @@
 import { createHash } from "node:crypto";
 import { generateJSON } from "@/lib/reader/ai";
 import { kvMGet, kvSet } from "@/lib/reader/store";
+import { similarity } from "@/lib/reader/enrich";
 
 export type TalkLine = { en: string; zh: string };
 export type Talk = { an: string; ae: string; bn: string; be: string; a: TalkLine; ok: TalkLine; wrong: TalkLine[] };
 export const talkId = (words: string[]) => words.map((w) => w.trim().toLowerCase()).filter(Boolean).sort().join("|");
-export const talkKey = (id: string) => "reader:talk:v1:" + createHash("sha1").update(id).digest("hex").slice(0, 24);
+export const talkKey = (id: string) => "reader:talk:v2:" + createHash("sha1").update(id).digest("hex").slice(0, 24);
 
 const LINE = { type: "object", properties: { en: { type: "string" }, zh: { type: "string" } }, required: ["en", "zh"] };
 const SCHEMA = {
@@ -35,8 +36,9 @@ const PROMPT = `You write a listening game for children (6-12) learning English.
 Create a tiny, FUNNY, kid-friendly two-character dialogue moment:
 - Two playful characters (animals, kids, robots, a grandma, a dragon...), each with a short English name (a_name, b_name) and ONE emoji (a_emoji, b_emoji). Vary characters between items.
 - a.en: ONE natural spoken sentence (6-16 words) said by character A that uses ALL the given words naturally (inflected forms OK). Usually a question or a surprising statement that invites a reply. Simple vocabulary apart from the target words.
-- reply.en: the ONE best, natural, witty reply by character B (3-14 words) that clearly fits A's line.
-- wrong: exactly 3 replies that sound like plausible English but do NOT fit A's line (answer a different question, wrong yes/no logic, wrong time/person/thing, or off-topic). Similar length and style to reply; never also-correct; no rude content.
+- a.en MUST contain every given word (an inflected form like -s/-ed/-ing is fine). Check this.
+- reply.en: the ONE best, natural, witty reply by character B (3-14 words) that DIRECTLY and logically answers or reacts to the exact content of A's line (refers to what A said), so a child who understood A's line can pick it with confidence.
+- wrong: exactly 4 replies that sound like plausible English but do NOT fit A's line (answer a different question, wrong yes/no logic, wrong time/person/thing, or off-topic). Similar length and style to reply; never also-correct; no rude content. All 4 replies must be clearly different sentences from each other (different words and meaning, not small variations).
 - zh for every line: 信达雅 Simplified Chinese — faithful, fluent, lively, natural for kids. Not word-for-word.
 - Do not add explanations.
 Items:\n`;
@@ -63,8 +65,14 @@ export async function generateTalk(items: { id: string; words: string[]; hint: s
     if (!it) continue;
     const a = clean(e.a), ok = clean(e.reply);
     if (!a || !ok) continue;
+    const low = a.en.toLowerCase();
+    if (!it.words.every((w) => { const x = w.toLowerCase(); return low.includes(x) || (x.length > 4 && low.includes(x.slice(0, x.length - 1))) || (x.length > 5 && low.includes(x.slice(0, 4))); })) continue;
     const seen = new Set([ok.en.toLowerCase()]);
-    const wrong = (e.wrong || []).map(clean).filter((x: TalkLine | null): x is TalkLine => !!x && !seen.has(x.en.toLowerCase()) && !!seen.add(x.en.toLowerCase())).slice(0, 3);
+    const wrong = (e.wrong || []).map(clean).filter((x: TalkLine | null): x is TalkLine => !!x && !seen.has(x.en.toLowerCase()) && !!seen.add(x.en.toLowerCase()));
+    const all = [ok, ...wrong];
+    const distinct: TalkLine[] = [];
+    for (const x of wrong) if (![ok, ...distinct].some((y) => similarity(y.en, x.en) > 0.75)) distinct.push(x);
+    wrong.splice(0, wrong.length, ...distinct.slice(0, 3)); void all;
     if (wrong.length < 3) continue;
     const t: Talk = {
       an: String(e.a_name || "Momo").slice(0, 20), ae: String(e.a_emoji || "🐼").slice(0, 8),

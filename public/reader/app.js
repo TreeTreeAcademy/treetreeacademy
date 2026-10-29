@@ -19,28 +19,46 @@ const TTS={ok:'speechSynthesis' in window,v:null,rate:.9,
     const v=this.v||this.pick();if(v)u.voice=v;u.lang='en-US';u.rate=rate||this.rate;if(onend)u.onend=onend;speechSynthesis.speak(u);return u}};
 if(TTS.ok){TTS.pick();speechSynthesis.onvoiceschanged=()=>TTS.pick()}
 /* ---------- Natural voice (server Gemini TTS, cached) with silent speechSynthesis fallback ---------- */
-const NV={url:{},pend:{},off:0,el:null,tok:0,
+const NV={tried:{},buf:{},miss:{},pend:{},off:0,tok:0,ctx:null,src:null,el:null,t0:0,
   key:(t,v)=>v+'|'+String(t).replace(/\s+/g,' ').trim(),
-  ok(t){return !!CFG.ttsEndpoint&&Date.now()>this.off&&t&&String(t).length<=300&&/[a-z]/i.test(t)},
-  gen(){return /^#\/(learn|review)/.test(location.hash)},
-  get(t,v,cacheOnly){const k=this.key(t,v);if(this.url[k])return Promise.resolve(this.url[k]);if(this.url[k]===null&&cacheOnly)return Promise.resolve(null);
+  norm:t=>String(t).replace(/\s+/g,' ').trim(),
+  ok(t){return !!CFG.ttsEndpoint&&t&&String(t).length<=300&&/[a-z]/i.test(t)},
+  gen(){return Date.now()>this.off&&/^#\/(learn|review)/.test(location.hash)},
+  ac(){if(this.ctx===null){const C=window.AudioContext||window.webkitAudioContext;this.ctx=C?new C():false}return this.ctx||null},
+  unlock(){const c=this.ac();if(c&&c.state==='suspended')c.resume().catch(()=>{})},
+  /* resolves to an AudioBuffer (Web Audio) or a blob URL (fallback), or null */
+  get(t,v,cacheOnly){const k=this.key(t,v);if(this.buf[k])return Promise.resolve(this.buf[k]);if(this.miss[k]&&(cacheOnly||Date.now()<this.miss[k]))return Promise.resolve(null);
     const pk=k+(cacheOnly?'#c':'');if(this.pend[pk])return this.pend[pk];
-    const q=`${CFG.ttsEndpoint}?v=${v}&t=${encodeURIComponent(String(t).replace(/\s+/g,' ').trim())}${cacheOnly?'&c=1':''}&k=2`;
+    const q=`${CFG.ttsEndpoint}?v=${v}&t=${encodeURIComponent(this.norm(t))}${cacheOnly?'&c=1':''}&k=3`;
     return this.pend[pk]=fetch(q,{credentials:'same-origin'}).then(r=>{
-        if(r.status===200)return r.blob().then(b=>this.url[k]=URL.createObjectURL(b));
+        if(r.status===200)return r.arrayBuffer().then(ab=>{const c=this.ac();
+          if(!c)return this.buf[k]=URL.createObjectURL(new Blob([ab],{type:'audio/mpeg'}));
+          return new Promise((res,rej)=>c.decodeAudioData(ab,res,rej)).then(b=>this.buf[k]=b)});
         const why=r.headers.get('x-tts');if(why==='quota'||why==='daily_limit'||why==='ai_not_configured')this.off=Date.now()+30*60e3;
-        if(cacheOnly)this.url[k]=this.url[k]||null;return null})
+        this.miss[k]=Date.now()+(cacheOnly?5*60e3:60e3);return null})
       .catch(()=>null).finally(()=>delete this.pend[pk])},
-  prefetch(t,v){if(this.ok(t))this.get(t,v)},
-  stop(){this.tok++;if(this.el){try{this.el.pause();this.el.currentTime=0}catch(e){}}},
+  /* pre-generate many short items (words) in one server request, then warm the local cache */
+  batch(items,v){v=v||'n';if(!CFG.ttsEndpoint||Date.now()<this.off)return Promise.resolve();
+    const list=[...new Set(items.map(x=>this.norm(x)).filter(x=>x&&x.length<=40&&/[a-z]/i.test(x)&&!this.buf[this.key(x,v)]&&!this.tried[this.key(x,v)]))];list.forEach(x=>this.tried[this.key(x,v)]=1);
+    const chunks=[];for(let i=0;i<list.length;i+=14)chunks.push(list.slice(i,i+14));
+    return chunks.reduce((p,ch)=>p.then(()=>fetch(CFG.ttsEndpoint,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({v,items:ch})})
+      .then(r=>r.ok?r.json():{}).then(j=>{if(j&&(j.detail==='quota'||j.detail==='daily_limit'))this.off=Date.now()+30*60e3;
+        (j&&j.ready||[]).forEach(x=>{delete this.miss[this.key(x,v)];this.get(x,v,true)})}).catch(()=>{})),Promise.resolve())},
+  prefetch(t,v){if(this.ok(t)&&this.gen())this.get(t,v)},
+  stop(){this.tok++;if(this.src){try{this.src.onended=null;this.src.stop()}catch(e){}this.src=null}if(this.el){try{this.el.pause();this.el.currentTime=0}catch(e){}}},
   hush(){this.stop();if(TTS.ok)speechSynthesis.cancel()},
-  /* fb(): speechSynthesis fallback; plays natural audio if ready within ~4s */
-  play(t,v,rate,fb,cb){if(TTS.ok)speechSynthesis.cancel();NV.stop();this.stop();const my=this.tok;
+  out(b,rate,cb,fb){const c=this.ac();
+    if(c&&b instanceof AudioBuffer){this.unlock();const s=c.createBufferSource(),g=c.createGain();s.buffer=b;s.playbackRate.value=rate;
+      const now=c.currentTime,d=b.duration/rate;g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(1,now+.01);g.gain.setValueAtTime(1,Math.max(now+.01,now+d-.04));g.gain.linearRampToValueAtTime(0,now+d);
+      s.connect(g).connect(c.destination);s.onended=()=>{if(this.src===s)this.src=null;cb&&cb()};this.src=s;s.start();return}
+    const a=this.el||(this.el=new Audio());a.src=b;a.playbackRate=rate;a.onended=cb||null;a.play().catch(()=>fb())},
+  /* fb(): speechSynthesis fallback, used only when no natural clip can be had within ~7s */
+  play(t,v,rate,fb,cb){this.unlock();if(TTS.ok)speechSynthesis.cancel();this.stop();const my=this.tok;this.t0=Date.now();
     if(!this.ok(t)){fb();return}
-    let done=false;const timer=setTimeout(()=>{if(!done&&my===this.tok){done=true;fb()}},4000);
-    this.get(t,v,!this.gen()).then(u=>{if(done||my!==this.tok)return;done=true;clearTimeout(timer);
-      if(!u){fb();return}const a=this.el||(this.el=new Audio());a.src=u;a.playbackRate=Math.max(.5,Math.min(1.3,rate||1));a.onended=cb||null;
-      a.play().catch(()=>fb())})}};
+    rate=Math.max(.5,Math.min(1.3,rate||1));
+    let done=false;const timer=setTimeout(()=>{if(!done&&my===this.tok){done=true;fb()}},7000);
+    this.get(t,v,!this.gen()).then(b=>{if(done||my!==this.tok)return;done=true;clearTimeout(timer);if(!b){fb();return}this.out(b,rate,cb,fb)})}};
+document.addEventListener('pointerdown',()=>NV.unlock(),{passive:true});
 /* stop any speech when the screen changes (route/step re-render), the tab is hidden, or the page is left */
 document.addEventListener('visibilitychange',()=>{if(document.hidden)NV.hush()});
 window.addEventListener('pagehide',()=>NV.hush());
@@ -52,7 +70,7 @@ let USER='demo',ME={};
 const KEY=()=>'tt2.'+USER+'.state';
 let S;
 function blank(){return{v:2,words:{},log:{},session:{},enrich:{},sq:{},updatedAt:0}}
-function load(){try{S=JSON.parse(localStorage.getItem(KEY()))||blank()}catch(e){S=blank()}S.words=S.words||{};S.log=S.log||{};S.session=S.session||{};S.enrich=S.enrich||{};S.sq=S.sq||{};S.talk=S.talk||{}}
+function load(){try{S=JSON.parse(localStorage.getItem(KEY()))||blank()}catch(e){S=blank()}S.words=S.words||{};S.log=S.log||{};S.session=S.session||{};S.enrich=S.enrich||{};S.sq=S.sq||{};S.tk2=S.tk2||{};delete S.talk}
 let syncT;
 function save(){S.updatedAt=Date.now();localStorage.setItem(KEY(),JSON.stringify(S));badges();
   if(CFG.progressEndpoint&&CFG.syncProgress!==false&&SYNC_OK){clearTimeout(syncT);syncT=setTimeout(()=>fetch(CFG.progressEndpoint,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(S)}).catch(()=>{}),1500)}}
@@ -288,11 +306,18 @@ const QZ={p:null,busy:{}};
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function sceneOf(w,c){const sc=c.scene;if(sc&&sc[1]&&sc[2])return{t:sc[0],en:sc[1],zh:sc[2],label:sc[3],url:sc[4]};
   const rec=S.words[w]||{};return rec.en&&rec.szh?{t:'book',en:rec.en,zh:rec.szh,label:rec.srcTitle}:null}
+function simR(a,b){const n=x=>[...String(x).replace(/[\s，。！？、,.!?;；:："“”'‘’]/g,'').toLowerCase()];const x=n(a),y=n(b);if(!x.length&&!y.length)return 1;
+  let p=Array.from({length:y.length+1},(_,j)=>j);for(let i=1;i<=x.length;i++){const c=[i];for(let j=1;j<=y.length;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(x[i-1]===y[j-1]?0:1));p=c}
+  return 1-p[y.length]/Math.max(x.length,y.length)}
+const tooSimilar=arr=>{for(let i=0;i<arr.length;i++)for(let j=i+1;j<arr.length;j++)if(simR(arr[i],arr[j])>.8)return true;return false};
 const zkey=z=>String(z||'').replace(/\s+/g,'');
-function quizOpts(w,s){const e=!LEX[w]&&S.enrich[w];let o=null;
-  if(e&&e.scene&&e.scene[1]===s.en&&e.sd&&e.sd.length>=2)o=e.sd;
-  else{const q=S.sq&&S.sq[w];if(q&&q.en===s.en&&q.zh===s.zh&&q.o&&q.o.length>=2)o=q.o}
-  if(!o)return null;o=[...new Set(o.map(x=>String(x).trim()).filter(x=>x&&zkey(x)!==zkey(s.zh)))].slice(0,3);return o.length>=2?o:null}
+function quizOpts(w,s){const e=!LEX[w]&&S.enrich[w];const cands=[];
+  if(e&&e.scene&&e.scene[1]===s.en&&e.sd&&e.sd.length>=2)cands.push(e.sd);
+  const q=S.sq&&S.sq[w];if(q&&q.en===s.en&&q.zh===s.zh&&q.o&&q.o.length>=2)cands.push(q.o);
+  for(const o0 of cands){const o=[...new Set(o0.map(x=>String(x).trim()).filter(x=>x&&zkey(x)!==zkey(s.zh)))];
+    const keep=[];for(const x of o){if(!tooSimilar([s.zh,...keep,x]))keep.push(x)}
+    if(keep.length>=2)return keep.slice(0,3);if(o0===(q&&q.o))delete S.sq[w]}
+  return null}
 /* no-AI fallback: Chinese translations of OTHER sentences (same book first), closest in length */
 function fallbackOpts(w,s){const rec=S.words[w]||{};const seen=new Set([zkey(s.zh)]);const cand=[];
   const add=(z,book)=>{z=String(z||'').trim();const k=zkey(z);if(!z||seen.has(k))return;seen.add(k);cand.push({z,book})};
@@ -300,8 +325,8 @@ function fallbackOpts(w,s){const rec=S.words[w]||{};const seen=new Set([zkey(s.z
   Object.entries(S.enrich).forEach(([k,e])=>{if(k!==w&&e&&e.scene&&e.scene[2])add(e.scene[2])});
   Object.entries(LEX).forEach(([k,e])=>{if(k!==w&&e&&e.scene&&e.scene[2])add(e.scene[2])});
   const L=zkey(s.zh).length;cand.sort((a,b)=>Math.abs(zkey(a.z).length-L)-Math.abs(zkey(b.z).length-L)-(a.book?4:0)+(b.book?4:0));
-  const pick=shuffle(cand.slice(0,6)).slice(0,3).map(x=>x.z);return pick.length>=2?pick:null}
-function kickPrep(list){QZ.p=Promise.resolve(enrichMissing(list)).then(()=>prefetchQuiz(list)).catch(()=>{})}
+  const pick=[];for(const x of shuffle(cand.slice(0,10))){if(pick.length<3&&!tooSimilar([s.zh,...pick,x.z]))pick.push(x.z)}return pick.length>=2?pick:null}
+function kickPrep(list){NV.batch(list||[]);QZ.p=Promise.resolve(enrichMissing(list)).then(()=>prefetchQuiz(list)).catch(()=>{})}
 function prefetchQuiz(list){if(!CFG.quizEndpoint)return null;
   const items=[];(list||[]).forEach(w=>{const s=sceneOf(w,content(w));if(s&&!quizOpts(w,s)&&!QZ.busy[w+'|'+s.en])items.push({w,en:s.en,zh:s.zh})});
   if(!items.length)return null;items.forEach(x=>QZ.busy[x.w+'|'+x.en]=1);
@@ -311,6 +336,7 @@ function prefetchQuiz(list){if(!CFG.quizEndpoint)return null;
 function renderScene(w,head,c,waited){const L=S.session.learn;const s=sceneOf(w,c);
   if(!s)return renderSceneStatic(w,head,c);
   let dis=quizOpts(w,s);
+  if(!dis&&!waited){const pr=prefetchQuiz([w]);if(pr)QZ.p=pr}
   if(!dis&&QZ.p&&!waited){app.innerHTML=head+'<div class="empty">…</div>';
     Promise.race([QZ.p,sleep(3500)]).then(()=>{const l=S.session.learn;if(l&&l.list&&l.list[l.i]===w&&l.step===4&&location.hash.startsWith('#/learn'))renderScene(w,head,c,true)});return}
   if(!dis)dis=fallbackOpts(w,s);
@@ -431,17 +457,18 @@ function renderSent(w,head,c){const L=S.session.learn;const rec=S.words[w]||{};c
   const tok=sp.tokens;const tiles=sp.mix.map(i=>({id:'w'+i,i,t:tok[i]}));
   const st={pool:tiles.map(t=>t.id),ans:[],tries:0,done:false,bad:new Set(),shown:false};
   const byId=id=>tiles.find(t=>t.id===id);
-  const full=tok.join(' ')+sp.end;
+  const PRE=sp.pre||[],POST=sp.post||[];const full=[...PRE,...tok,...POST].join(' ')+sp.end;
+  const fixed=a=>a.map(t=>`<span class="tb wd lock snq-fix" lang="en">${esc(t)}</span>`).join('');
   const hl=t=>PH.wordsOf(t).some(x=>hiMatch(x,w));
   const zhOf=(rec.szh||'').trim();
   function paint(){
-    $('#sn-ans').innerHTML=(st.ans.length?st.ans.map((id,k)=>{const t=byId(id);return `<button class="tb wd${st.bad.has(id)?' bad':''}${st.done?' ok lock':''}${hl(t.t)&&st.done?' hl':''}" data-id="${id}" data-from="ans" data-k="${k}" lang="en">${esc(t.t)}</button>`}).join(''):'<span class="faint ph">把单词拖到这里 ↓</span>')+(sp.end?`<span class="endm">${esc(sp.end)}</span>`:'');
+    $('#sn-ans').innerHTML=fixed(PRE)+(st.ans.length?st.ans.map((id,k)=>{const t=byId(id);return `<button class="tb wd${st.bad.has(id)?' bad':''}${st.done?' ok lock':''}${hl(t.t)&&st.done?' hl':''}" data-id="${id}" data-from="ans" data-k="${k}" lang="en">${esc(t.t)}</button>`}).join(''):'<span class="faint ph">把单词拖到这里 ↓</span>')+fixed(POST)+(sp.end?`<span class="endm">${esc(sp.end)}</span>`:'');
     $('#sn-pool').innerHTML=st.pool.length?st.pool.map(id=>`<button class="tb wd" data-id="${id}" data-from="pool" lang="en">${esc(byId(id).t)}</button>`).join(''):'<span class="faint" style="font-size:.9rem">单词都用完啦</span>';
     $('#sn-check').disabled=st.done||st.pool.length>0}
   app.innerHTML=head+`<div class="qbox snq">
     <div class="prompt"><div class="muted" style="margin-bottom:6px">🧩 把单词排成正确的句子（目标词 <b class="en">${esc(w)}</b>）</div>
       ${zhOf?`<div class="szh3">${esc(zhOf)}</div>`:`<div class="szh3">${esc(shortZh(c.zh)||'')}</div>`}
-      ${sp.partial?'<div class="note" style="margin-top:2px">上面是整句的意思；这一步只排其中一小段英文</div>':''}
+      ${PRE.length||POST.length?'<div class="note" style="margin-top:2px">句子比较长，灰色的单词已经帮你放好了，排好其余的单词</div>':''}
       <button class="btn sp-snd" data-say="${esc(full)}" style="margin-top:8px">🔊 听这句话</button></div>
     <div id="sn-ans" class="sn-ans" data-drop="ans"></div>
     <div id="sn-msg" class="sp-msg" aria-live="polite">拖一拖，或者依次点单词；点上面的单词可以放回去</div>
@@ -451,7 +478,7 @@ function renderSent(w,head,c){const L=S.session.learn;const rec=S.words[w]||{};c
   paint();
   const msg=(h,cls)=>{const m=$('#sn-msg');m.className='sp-msg'+(cls?' '+cls:'');m.innerHTML=h};
   const remove=id=>{st.pool=st.pool.filter(x=>x!==id);st.ans=st.ans.filter(x=>x!==id)};
-  const insertAt=(x,y)=>{const els=$$('#sn-ans .tb');let n=0;for(const e of els){if(e.classList.contains('dragging'))continue;const r=e.getBoundingClientRect();
+  const insertAt=(x,y)=>{const els=$$('#sn-ans .tb:not(.snq-fix)');let n=0;for(const e of els){if(e.classList.contains('dragging'))continue;const r=e.getBoundingClientRect();
       if(y>r.bottom||(y>=r.top&&x>r.left+r.width/2))n++;}return n};
   const kit=dragKit(app.querySelector('.snq'),{
     tap(id,el){if(st.done)return;st.bad.delete(id);if(el.dataset.from==='pool'){remove(id);st.ans.push(id)}else{remove(id);st.pool.push(id)}paint()},
@@ -488,6 +515,7 @@ function viewReview(){nav('review');let R=S.session.review;
   if(!R||!R.list||!R.list.length){const l=Object.values(S.words).filter(x=>x.st==='learned').map(x=>x.w);
     if(!l.length){app.innerHTML=`<div class="zone-h"><span class="tag rv">🔁 复习区</span></div><div class="empty"><div class="e">🍃</div>现在没有需要复习的单词。<br><a href="#/learn">去学习区</a> 或 <a href="#/vault">成就仓</a></div>`;return}
     R=S.session.review={list:l,phase:'match',round:0,missed:[],queue:[]};save()}
+  if(!NV.bq||NV.bq!==R){NV.bq=R;NV.batch(R.list)}
   R.phase==='match'?renderMatch():R.phase==='talk'?renderTalk():renderDialog()}
 function rounds(list){const n=Math.ceil(list.length/5),out=[];const size=Math.ceil(list.length/n);for(let i=0;i<list.length;i+=size)out.push(list.slice(i,i+size));return out}
 function renderMatch(){const R=S.session.review;const rs=rounds(R.list);if(!R.round&&!R.tpre){R.tpre=1;R.tg=talkGroups(R.list);fetchTalk(R.tg).then(()=>prefetchTalkAudio(R.tg))}if(R.round>=rs.length){return afterMatch()}
@@ -515,20 +543,20 @@ function talkGroups(list){const l=shuffle(list),g=[];for(let i=0;i<l.length;i+=2
 const tId=ws=>ws.map(w=>w.trim().toLowerCase()).sort().join('|');
 const TK={busy:{}};
 function fetchTalk(groups){const ids=groups.map(tId);const wait=ids.filter(i=>TK.busy[i]).map(i=>TK.busy[i]);
-  const need=groups.filter(g=>!S.talk[tId(g)]&&!TK.busy[tId(g)]).slice(0,8);
+  const need=groups.filter(g=>!S.tk2[tId(g)]&&!TK.busy[tId(g)]).slice(0,8);
   if(!need.length||!CFG.talkEndpoint)return Promise.all(wait);
   const pr=fetch(CFG.talkEndpoint,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({groups:need.map(g=>({words:g,hint:g.map(w=>shortZh(content(w).zh)).join('；')}))})})
-    .then(r=>r.ok?r.json():{}).then(j=>{TK.detail=j&&j.detail;let n=0;for(const[k,t]of Object.entries((j&&j.talks)||{})){S.talk[k]=t;n++}if(n)save();prefetchTalkAudio(groups)})
+    .then(r=>r.ok?r.json():{}).then(j=>{TK.detail=j&&j.detail;let n=0;for(const[k,t]of Object.entries((j&&j.talks)||{})){S.tk2[k]=t;n++}if(n)save();prefetchTalkAudio(groups)})
     .catch(()=>{}).then(()=>need.forEach(g=>delete TK.busy[tId(g)]));
   need.forEach(g=>TK.busy[tId(g)]=pr);return Promise.all([pr,...wait])}
-function prefetchTalkAudio(groups){groups.slice(0,4).forEach(g=>{const t=S.talk[tId(g)];if(t)NV.prefetch(t.a.en,'a')})}
+function prefetchTalkAudio(groups){groups.slice(0,4).forEach(g=>{const t=S.tk2[tId(g)];if(t)NV.prefetch(t.a.en,'a')})}
 function talkVoice(who){const vs=TTS.ok?speechSynthesis.getVoices().filter(x=>/^en[-_](US|GB|AU)$/i.test(x.lang)):[];if(!vs.length)return null;
   const a=TTS.v||TTS.pick();if(who==='a')return a;return vs.find(x=>x!==a&&/en[-_]US/i.test(x.lang))||vs.find(x=>x!==a)||a}
 function sayAs(t,who,rate){NV.play(t,who,(rate||.88)/.88,()=>sayAsSynth(t,who,rate))}
 function sayAsSynth(t,who,rate){if(!TTS.ok){toast('这个浏览器不支持朗读');return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);
   const v=talkVoice(who);if(v)u.voice=v;u.lang=(v&&v.lang)||'en-US';u.rate=rate||.88;u.pitch=who==='a'?1.3:.8;speechSynthesis.speak(u)}
 function renderTalk(waited){const R=S.session.review;if(!R.tq||!R.tq.length){R.phase='dlg';R.queue=[...R.missed];save();return R.queue.length?renderDialog():finishReview(!R.tmiss)}
-  const g=R.tq[0],id=tId(g),t=S.talk[id];const done=R.tn-R.tq.length;
+  const g=R.tq[0],id=tId(g),t=S.tk2[id];const done=R.tn-R.tq.length;
   const head=`<div class="zone-h"><span class="tag rv">🔁 复习区 · 听对话选回答</span><b>第 ${done+1} / ${R.tn} 段</b><div class="bar"><b style="width:${done/R.tn*100}%"></b></div></div>`;
   if(!t){if(!waited){app.innerHTML=head+'<div class="empty"><div class="e">✍️</div>AI 正在编一段有趣的对话…</div>';
       fetchTalk(R.tq).then(()=>{const r2=S.session.review;if(location.hash.startsWith('#/review')&&r2&&r2.phase==='talk'&&r2.tq&&tId(r2.tq[0]||[])===id)renderTalk(true)});return}
