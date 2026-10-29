@@ -8,7 +8,7 @@
 Token: env READER_IMPORT_TOKEN or /workspace/.secrets/READER_IMPORT_TOKEN (never printed).
 Model files: $KOKORO_DIR (default /workspace/kokoro): kokoro-v1.0.onnx, voices-v1.0.bin. Idempotent; lock-protected.
 """
-import argparse, base64, fcntl, json, os, subprocess, sys, time, urllib.request
+import argparse, base64, fcntl, signal, json, os, subprocess, sys, time, urllib.request
 import numpy as np
 
 KDIR = os.environ.get("KOKORO_DIR", "/workspace/kokoro")
@@ -98,6 +98,8 @@ def main():
     if not o.no_upgrade: upgrade(o.site)
     if not todo:
         json.dump(sorted(done), open(DONE, "w")); return
+    def _to(*_): raise TimeoutError("kokoro took >60s")
+    signal.signal(signal.SIGALRM, _to)
     from kokoro_onnx import Kokoro
     k = Kokoro(os.path.join(KDIR, "kokoro-v1.0.onnx"), os.path.join(KDIR, "voices-v1.0.bin"))
     batch, bsz, ok, fail = [], 0, 0, 0
@@ -114,13 +116,15 @@ def main():
     for i, x in enumerate(todo):
         try:
             sp = 0.9 if x["v"] == "n" and " " not in x["t"] else (0.95 if x["v"] == "n" else 1.0)
-            a, sr = k.create(spoken(x["t"]), voice=VOICE[x["v"]], speed=sp, lang="en-us")
+            signal.alarm(60)  # never let one odd text stall the whole job
+            try: a, sr = k.create(spoken(x["t"]), voice=VOICE[x["v"]], speed=sp, lang="en-us")
+            finally: signal.alarm(0)
             b = base64.b64encode(mp3(clean(a))).decode()
         except Exception as e:
             fail += 1; log("fail", repr(x["t"][:40]), type(e).__name__); continue
         batch.append({**x, "b64": b}); bsz += len(b)
         if len(batch) >= 60 or bsz > 2_500_000: flush()
-        if i and i % 200 == 0: log(f"  {i}/{len(todo)} voiced, {time.time() - t0:.0f}s")
+        if i and i % 50 == 0: log(f"  {i}/{len(todo)} voiced, {time.time() - t0:.0f}s")
     flush()
     log(f"done: {ok} stored, {fail} failed, {time.time() - t0:.0f}s")
 
