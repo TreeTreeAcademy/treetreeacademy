@@ -19,7 +19,7 @@ SR = 24000
 
 def log(*a):
     line = time.strftime("%Y-%m-%d %H:%M:%S ") + " ".join(str(x) for x in a)
-    print(line, flush=True)
+    if sys.stdout.isatty(): print(line, flush=True)
     with open(LOG, "a") as f: f.write(line + "\n")
 
 def token():
@@ -49,7 +49,7 @@ def clean(a):
 
 def mp3(a):
     pcm = (np.clip(a, -1, 1) * 32767).astype("<i2").tobytes()
-    p = subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "s16le", "-ar", str(SR), "-ac", "1", "-i", "-", "-b:a", "48k", "-f", "mp3", "-"],
+    p = subprocess.run(["ffmpeg", "-loglevel", "error", "-f", "s16le", "-ar", str(SR), "-ac", "1", "-i", "-", "-b:a", "32k", "-f", "mp3", "-"],
                        input=pcm, capture_output=True, check=True)
     return p.stdout
 
