@@ -248,3 +248,21 @@ textarea{font-family:var(--en);min-height:180px}
 .bt .bs{position:absolute;right:5px;top:5px;font-size:1rem;pointer-events:none}
 .bt.s-done .bs{background:var(--forest);color:#fff;width:22px;height:22px;line-height:22px;text-align:center;border-radius:50%;font-size:.8rem;font-weight:800}
 .bt.s-wait{opacity:.7}.bt.s-run,.bt.cur{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold)}.bt.s-fail{border-color:var(--bad)}
+/* 复习区 · 听对话选回答 (tkq- prefix) */
+.tkq{max-width:640px;margin:0 auto}
+.tkq-bub{display:flex;gap:10px;align-items:flex-start;margin-bottom:14px}
+.tkq-bub.me{flex-direction:row-reverse}
+.tkq-av{flex:0 0 56px;height:56px;border-radius:50%;background:var(--soft);display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:1.6rem;line-height:1;border:2px solid var(--lime)}
+.tkq-av small{font-size:.6rem;color:var(--muted);margin-top:2px;max-width:54px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tkq-msg{background:#fff;border:2px solid var(--border);border-radius:4px 18px 18px 18px;padding:12px 14px;flex:1;min-width:0}
+.tkq-bub.me .tkq-msg{border-radius:18px 4px 18px 18px;background:var(--soft)}
+.tkq-wave{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.tkq-line{margin-top:10px}.tkq-line .en{font-size:1.15rem;font-weight:700;line-height:1.45}
+.tkq-zh{display:block;font-size:.72rem;color:var(--faint);font-weight:400;margin-top:3px;line-height:1.4}
+.tkq-zh.hidden,.tkq-line.hidden{display:none}
+.tkq-opts{display:flex;flex-direction:column;gap:10px;margin:6px 0 12px}
+.tkq-row{display:flex;gap:6px;align-items:center}.tkq-row .opt{flex:1;min-width:0;font-size:1rem;line-height:1.4;align-items:flex-start}
+.tkq-o{display:flex;flex-direction:column;min-width:0}
+.tkq-opts.done .opt:not(.ok):not(.bad){opacity:.55}
+.tkq-help{border:1px dashed var(--border);background:transparent;color:var(--muted);border-radius:999px;padding:8px 16px;font-size:.9rem}
+.tkq-ai{text-align:center;font-size:.72rem;color:#6a5bc4;margin:8px 0}

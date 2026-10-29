@@ -4,7 +4,8 @@ window.TT_CONFIG = {
   booksBase: "/api/reader/books/",        // catalog.json + <id>/book.json + <id>/img/* (private store, proxied after login)
   parseEndpoint: "/api/reader/parse",     // upload photo/screenshot/audio -> Learning Source JSON
   enrichEndpoint: "/api/reader/enrich",   // optional AI content for words not in lexicon.js
-  quizEndpoint: "/api/reader/quizopts",   // 译文选择题 distractors (AI, cached; falls back to other sentences offline)
+  quizEndpoint: "/api/reader/quizopts",
+  talkEndpoint: "/api/reader/talk",       // 复习区 听对话选回答 (AI dialogues, cached)   // 译文选择题 distractors (AI, cached; falls back to other sentences offline)
   progressEndpoint: "/api/reader/progress", // optional server sync (KV); falls back to localStorage only
   meEndpoint: "/api/reader/me",           // -> {user, admin, ai, blob, limits}
   sharedEndpoint: "/api/reader/shared",   // sources an admin published to all families

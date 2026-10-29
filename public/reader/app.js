@@ -25,7 +25,7 @@ let USER='demo',ME={};
 const KEY=()=>'tt2.'+USER+'.state';
 let S;
 function blank(){return{v:2,words:{},log:{},session:{},enrich:{},sq:{},updatedAt:0}}
-function load(){try{S=JSON.parse(localStorage.getItem(KEY()))||blank()}catch(e){S=blank()}S.words=S.words||{};S.log=S.log||{};S.session=S.session||{};S.enrich=S.enrich||{};S.sq=S.sq||{}}
+function load(){try{S=JSON.parse(localStorage.getItem(KEY()))||blank()}catch(e){S=blank()}S.words=S.words||{};S.log=S.log||{};S.session=S.session||{};S.enrich=S.enrich||{};S.sq=S.sq||{};S.talk=S.talk||{}}
 let syncT;
 function save(){S.updatedAt=Date.now();localStorage.setItem(KEY(),JSON.stringify(S));badges();
   if(CFG.progressEndpoint&&CFG.syncProgress!==false&&SYNC_OK){clearTimeout(syncT);syncT=setTimeout(()=>fetch(CFG.progressEndpoint,{method:'PUT',headers:{'content-type':'application/json'},body:JSON.stringify(S)}).catch(()=>{}),1500)}}
@@ -461,9 +461,9 @@ function viewReview(){nav('review');let R=S.session.review;
   if(!R||!R.list||!R.list.length){const l=Object.values(S.words).filter(x=>x.st==='learned').map(x=>x.w);
     if(!l.length){app.innerHTML=`<div class="zone-h"><span class="tag rv">🔁 复习区</span></div><div class="empty"><div class="e">🍃</div>现在没有需要复习的单词。<br><a href="#/learn">去学习区</a> 或 <a href="#/vault">成就仓</a></div>`;return}
     R=S.session.review={list:l,phase:'match',round:0,missed:[],queue:[]};save()}
-  R.phase==='match'?renderMatch():renderDialog()}
+  R.phase==='match'?renderMatch():R.phase==='talk'?renderTalk():renderDialog()}
 function rounds(list){const n=Math.ceil(list.length/5),out=[];const size=Math.ceil(list.length/n);for(let i=0;i<list.length;i+=size)out.push(list.slice(i,i+size));return out}
-function renderMatch(){const R=S.session.review;const rs=rounds(R.list);if(R.round>=rs.length){return afterMatch()}
+function renderMatch(){const R=S.session.review;const rs=rounds(R.list);if(!R.round&&!R.tpre){R.tpre=1;R.tg=talkGroups(R.list);fetchTalk(R.tg)}if(R.round>=rs.length){return afterMatch()}
   const set=rs[R.round];const left=shuffle(set),right=shuffle(set);let sel=null,left2=set.length;
   app.innerHTML=`<div class="zone-h"><span class="tag rv">🔁 复习区 · 连连看</span><b>第 ${R.round+1} / ${rs.length} 轮</b><div class="bar"><b style="width:${R.round/rs.length*100}%"></b></div></div>
    <p class="muted center">先点英文，再点对应的中文。配错的单词会进入「情景对话」继续练习。</p>
@@ -480,7 +480,57 @@ function renderMatch(){const R=S.session.review;const rs=rounds(R.list);if(R.rou
     else{t.classList.add('bad');lt.classList.add('bad');setTimeout(()=>{t.classList.remove('bad');lt.classList.remove('bad')},400);
       if(!R.missed.includes(sel)){R.missed.push(sel);const r=S.words[sel];if(r)r.miss=(r.miss||0)+1;save()}$('#mc').textContent=R.missed.filter(m=>set.includes(m)).length}};
   if(cleanup)cleanup();app.addEventListener('click',onClick);cleanup=()=>app.removeEventListener('click',onClick)}
-function afterMatch(){const R=S.session.review;if(!R.missed.length)return finishReview(true);R.phase='dlg';R.queue=[...R.missed];save();
+function afterMatch(){const R=S.session.review;R.phase='talk';R.tq=R.tg||talkGroups(R.list);R.tn=R.tq.length;R.tmiss=0;save();
+  app.innerHTML=`<div class="empty"><div class="e">🎧</div><h2>连连看完成！</h2>下一关：听对话，选回答</div>`;setTimeout(()=>{if(location.hash.startsWith('#/review'))renderTalk()},1200)}
+/* ===== 复习区 · 听对话选回答 (AI dialogues from the review words, 2 words per line) ===== */
+function talkGroups(list){const l=shuffle(list),g=[];for(let i=0;i<l.length;i+=2)g.push(l.slice(i,i+2));
+  if(g.length>1&&g[g.length-1].length===1)g[g.length-2].push(g.pop()[0]);return g.slice(0,12)}
+const tId=ws=>ws.map(w=>w.trim().toLowerCase()).sort().join('|');
+const TK={busy:{}};
+function fetchTalk(groups){const need=groups.filter(g=>!S.talk[tId(g)]&&!TK.busy[tId(g)]);if(!need.length||!CFG.talkEndpoint)return Promise.resolve();
+  need.forEach(g=>TK.busy[tId(g)]=1);
+  return fetch(CFG.talkEndpoint,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({groups:need.slice(0,8).map(g=>({words:g,hint:g.map(w=>shortZh(content(w).zh)).join('；')}))})})
+    .then(r=>r.ok?r.json():{}).then(j=>{TK.detail=j&&j.detail;let n=0;for(const[k,t]of Object.entries((j&&j.talks)||{})){S.talk[k]=t;n++}if(n)save()})
+    .catch(()=>{}).then(()=>need.forEach(g=>delete TK.busy[tId(g)]))}
+function talkVoice(who){const vs=TTS.ok?speechSynthesis.getVoices().filter(x=>/^en[-_](US|GB|AU)$/i.test(x.lang)):[];if(!vs.length)return null;
+  const a=TTS.v||TTS.pick();if(who==='a')return a;return vs.find(x=>x!==a&&/en[-_]US/i.test(x.lang))||vs.find(x=>x!==a)||a}
+function sayAs(t,who,rate){if(!TTS.ok){toast('这个浏览器不支持朗读');return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);
+  const v=talkVoice(who);if(v)u.voice=v;u.lang=(v&&v.lang)||'en-US';u.rate=rate||.88;u.pitch=who==='a'?1.3:.8;speechSynthesis.speak(u)}
+function renderTalk(waited){const R=S.session.review;if(!R.tq||!R.tq.length){R.phase='dlg';R.queue=[...R.missed];save();return R.queue.length?renderDialog():finishReview(!R.tmiss)}
+  const g=R.tq[0],id=tId(g),t=S.talk[id];const done=R.tn-R.tq.length;
+  const head=`<div class="zone-h"><span class="tag rv">🔁 复习区 · 听对话选回答</span><b>第 ${done+1} / ${R.tn} 段</b><div class="bar"><b style="width:${done/R.tn*100}%"></b></div></div>`;
+  if(!t){if(!waited){app.innerHTML=head+'<div class="empty"><div class="e">✍️</div>AI 正在编一段有趣的对话…</div>';
+      fetchTalk(R.tq).then(()=>{if(location.hash.startsWith('#/review')&&S.session.review===R&&R.phase==='talk')renderTalk(true)});return}
+    // AI unavailable (quota / offline): skip this group, words still reviewed in the other steps
+    toast(TK.detail==='daily_limit'?'今天的 AI 对话额度用完了，先跳过这一段':'AI 对话暂时生成不了，先跳过这一段',2200);R.tq.shift();save();return renderTalk()}
+  if(R.tq.length>1)fetchTalk(R.tq.slice(1));
+  const opts=shuffle([t.ok,...t.wrong.slice(0,3)]);
+  app.innerHTML=head+`<div class="tkq">
+   <div class="center" style="margin-bottom:10px"><span class="target">🎯 ${g.map(w=>`<b class="en">${esc(w)}</b> ${esc(shortZh(content(w).zh))}`).join(' · ')}</span></div>
+   <div class="tkq-bub"><div class="tkq-av">${esc(t.ae)}<small>${esc(t.an)}</small></div><div class="tkq-msg">
+     <div class="tkq-wave"><button class="btn sm" data-tk="play">🔊 播放</button><button class="btn sm sec" data-tk="slow">🐢 慢速</button><span class="muted">听 ${esc(t.an)} 说了什么</span></div>
+     <div id="tkq-line" class="tkq-line hidden"><div class="en">${speakable(t.a.en)}</div><div class="tkq-zh">${esc(t.a.zh)}</div></div></div></div>
+   <div class="tkq-bub me"><div class="tkq-av">${esc(t.be)}<small>${esc(t.bn)}</small></div><div class="tkq-msg"><b>${esc(t.bn)} 应该怎么回答？</b></div></div>
+   <div class="tkq-opts">${opts.map((o,i)=>`<div class="tkq-row"><button class="opt" data-tk="ans" data-i="${i}"><span class="L">${'ABCD'[i]}</span><span class="tkq-o"><span class="en">${esc(o.en)}</span><span class="tkq-zh hidden">${esc(o.zh)}</span></span></button><button class="ico" data-tk="hear" data-i="${i}" aria-label="听这个回答">🔈</button></div>`).join('')}</div>
+   <div class="center"><button class="tkq-help" data-tk="help">💡 求助 / 看原句</button></div>
+   <p class="tkq-ai">🤖 对话由 AI 创作（树儿学院原创，非引用）</p>
+   <div id="tkq-res" class="actions hidden"></div></div>`;
+  setTimeout(()=>sayAs(t.a.en,'a'),350);let answered=false;
+  const onClick=e=>{const sp=e.target.closest('[data-say]');if(sp){say(sp.dataset.say);return}
+    const a=e.target.closest('[data-tk]');if(!a)return;const k=a.dataset.tk;
+    if(k==='play'){sayAs(t.a.en,'a');return}if(k==='slow'){sayAs(t.a.en,'a',.6);return}
+    if(k==='hear'){sayAs(opts[+a.dataset.i].en,'b');return}
+    if(k==='help'){const l=$('#tkq-line');l.classList.toggle('hidden');a.textContent=l.classList.contains('hidden')?'💡 求助 / 看原句':'🙈 收起原句';return}
+    if(k==='ans'){if(answered)return;answered=true;const o=opts[+a.dataset.i],ok=o===t.ok;sayAs(t.ok.en,'b');
+      $$('.tkq-opts .opt').forEach((b,i)=>{if(opts[i]===t.ok){b.classList.add('ok');b.querySelector('.tkq-zh').classList.remove('hidden')}});
+      $('.tkq-opts').classList.add('done');
+      if(!ok){a.classList.add('bad');R.tmiss=(R.tmiss||0)+1;g.forEach(w=>{const r=S.words[w];if(r)r.miss=(r.miss||0)+1;if(!R.missed.includes(w))R.missed.push(w)})}
+      R.tq.shift();$('#tkq-line').classList.remove('hidden');
+      $('#tkq-res').innerHTML=(ok?`<b style="color:var(--forest)">✅ 答对了！${esc(t.bn)} 就是这么说的</b>`:`<b style="color:var(--bad)">差一点～正确回答已标绿，这些单词稍后再练</b>`)+`<button class="btn" data-tk="go">继续 →</button>`;
+      $('#tkq-res').classList.remove('hidden');save();return}
+    if(k==='go'){cleanup&&cleanup();cleanup=null;renderTalk();window.scrollTo(0,0)}};
+  if(cleanup)cleanup();app.addEventListener('click',onClick);cleanup=()=>app.removeEventListener('click',onClick)}
+function afterTalkLegacy(){const R=S.session.review;if(!R.missed.length)return finishReview(true);R.phase='dlg';R.queue=[...R.missed];save();
   app.innerHTML=`<div class="empty"><div class="e">💬</div><h2>连连看完成！</h2>${R.missed.length} 个单词需要再练一练 → 情景对话</div>`;setTimeout(()=>{renderDialog()},1300)}
 function dialogFor(w){const c=content(w);
   if(c.dlg){const others=shuffle(Object.entries(LEX).filter(([k])=>k!==w).map(([,e])=>e.dlg[1])).slice(0,2);
