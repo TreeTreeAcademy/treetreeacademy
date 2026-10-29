@@ -487,11 +487,13 @@ function talkGroups(list){const l=shuffle(list),g=[];for(let i=0;i<l.length;i+=2
   if(g.length>1&&g[g.length-1].length===1)g[g.length-2].push(g.pop()[0]);return g.slice(0,12)}
 const tId=ws=>ws.map(w=>w.trim().toLowerCase()).sort().join('|');
 const TK={busy:{}};
-function fetchTalk(groups){const need=groups.filter(g=>!S.talk[tId(g)]&&!TK.busy[tId(g)]);if(!need.length||!CFG.talkEndpoint)return Promise.resolve();
-  need.forEach(g=>TK.busy[tId(g)]=1);
-  return fetch(CFG.talkEndpoint,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({groups:need.slice(0,8).map(g=>({words:g,hint:g.map(w=>shortZh(content(w).zh)).join('；')}))})})
+function fetchTalk(groups){const ids=groups.map(tId);const wait=ids.filter(i=>TK.busy[i]).map(i=>TK.busy[i]);
+  const need=groups.filter(g=>!S.talk[tId(g)]&&!TK.busy[tId(g)]).slice(0,8);
+  if(!need.length||!CFG.talkEndpoint)return Promise.all(wait);
+  const pr=fetch(CFG.talkEndpoint,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({groups:need.map(g=>({words:g,hint:g.map(w=>shortZh(content(w).zh)).join('；')}))})})
     .then(r=>r.ok?r.json():{}).then(j=>{TK.detail=j&&j.detail;let n=0;for(const[k,t]of Object.entries((j&&j.talks)||{})){S.talk[k]=t;n++}if(n)save()})
-    .catch(()=>{}).then(()=>need.forEach(g=>delete TK.busy[tId(g)]))}
+    .catch(()=>{}).then(()=>need.forEach(g=>delete TK.busy[tId(g)]));
+  need.forEach(g=>TK.busy[tId(g)]=pr);return Promise.all([pr,...wait])}
 function talkVoice(who){const vs=TTS.ok?speechSynthesis.getVoices().filter(x=>/^en[-_](US|GB|AU)$/i.test(x.lang)):[];if(!vs.length)return null;
   const a=TTS.v||TTS.pick();if(who==='a')return a;return vs.find(x=>x!==a&&/en[-_]US/i.test(x.lang))||vs.find(x=>x!==a)||a}
 function sayAs(t,who,rate){if(!TTS.ok){toast('这个浏览器不支持朗读');return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);
@@ -500,7 +502,7 @@ function renderTalk(waited){const R=S.session.review;if(!R.tq||!R.tq.length){R.p
   const g=R.tq[0],id=tId(g),t=S.talk[id];const done=R.tn-R.tq.length;
   const head=`<div class="zone-h"><span class="tag rv">🔁 复习区 · 听对话选回答</span><b>第 ${done+1} / ${R.tn} 段</b><div class="bar"><b style="width:${done/R.tn*100}%"></b></div></div>`;
   if(!t){if(!waited){app.innerHTML=head+'<div class="empty"><div class="e">✍️</div>AI 正在编一段有趣的对话…</div>';
-      fetchTalk(R.tq).then(()=>{if(location.hash.startsWith('#/review')&&S.session.review===R&&R.phase==='talk')renderTalk(true)});return}
+      fetchTalk(R.tq).then(()=>{const r2=S.session.review;if(location.hash.startsWith('#/review')&&r2&&r2.phase==='talk'&&r2.tq&&tId(r2.tq[0]||[])===id)renderTalk(true)});return}
     // AI unavailable (quota / offline): skip this group, words still reviewed in the other steps
     toast(TK.detail==='daily_limit'?'今天的 AI 对话额度用完了，先跳过这一段':'AI 对话暂时生成不了，先跳过这一段',2200);R.tq.shift();save();return renderTalk()}
   if(R.tq.length>1)fetchTalk(R.tq.slice(1));
