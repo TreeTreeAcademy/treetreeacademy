@@ -1,7 +1,7 @@
 // GET /api/reader/tts?t=<text>&v=a|b|n  → audio/mpeg (natural Gemini TTS, shared KV cache). 204 = use speechSynthesis.
 // New clips count against READER_DAILY_TTS (default 60/day, admin 300). Cached clips are free.
 import { requireUser, unauthorized } from "@/lib/reader/session";
-import { cachedTts, generateTts, normText, VOICES } from "@/lib/reader/tts";
+import { cachedTts, generateTts, normText, purgeV1, VOICES } from "@/lib/reader/tts";
 import { consume, remaining } from "@/lib/reader/limits";
 
 export const dynamic = "force-dynamic";
@@ -17,6 +17,7 @@ export async function GET(req: Request) {
   const u = new URL(req.url);
   const t = normText(u.searchParams.get("t") || ""), v = u.searchParams.get("v") || "n";
   if (!t || !/[a-z]/i.test(t) || !VOICES[v]) return none("bad");
+  await purgeV1();
   const hit = await cachedTts(t, v);
   if (hit) return audio(hit);
   if (u.searchParams.get("c") === "1") return none("miss"); // cache-only probe

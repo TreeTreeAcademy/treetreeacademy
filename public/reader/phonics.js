@@ -63,6 +63,18 @@ function distractors(pl,dict,rnd){rnd=rnd||Math.random;const need=pl.letters,k=n
   return out}
 /* ---- sentence builder ---- */
 const wordsOf=s=>(s.match(/[A-Za-z]+(?:['’][A-Za-z]+)?/g)||[]);
+/* Pick a sub-span of a long clause that holds the target word and ends/starts at a natural phrase boundary,
+   so the reorder tiles never stop mid-phrase (e.g. "...and to each" without "other"). */
+const STARTERS=new Set('and but or so because when where which who that while if then with for to as after before until since though'.split(' '));
+const DANGLE=new Set('a an the to of and or but each every some any my your his her its our their this that these those in on at for with by from as is are was were be very so than'.split(' '));
+function bestWindow(c,at,max){const lw=t=>(String(t).toLowerCase().match(/[a-z']+/g)||[''])[0];let best=null;
+  for(let s=0;s<=at;s++)for(let e=at+1;e<=c.length;e++){const n=e-s;if(n<5||n>max)continue;
+    let sc=0;const endTok=c[e-1];
+    if(e===c.length||/[,;:.!?…]["”’)]*$/.test(endTok))sc+=6;else if(STARTERS.has(lw(c[e])))sc+=4;
+    if(DANGLE.has(lw(endTok))&&e!==c.length)sc-=8;
+    if(s===0||/[,;:.!?…]["”’)]*$/.test(c[s-1]))sc+=3;else if(STARTERS.has(lw(c[s])))sc+=2;
+    sc+=n*.3;if(!best||sc>best.sc)best={sc,s,e}}
+  return best?c.slice(best.s,best.e):c.slice(Math.max(0,Math.min(at-4,c.length-10)),Math.max(0,Math.min(at-4,c.length-10))+10)}
 function sentencePlan(en,target,hi,max){max=max||12;en=String(en||'').replace(/\s*(?:\.\s*){3,}/g,'… ').replace(/\s+/g,' ').trim();if(!en)return null;
   let toks=en.split(' ').filter(Boolean);
   // glue stray punctuation tokens (". . .") to the previous word
@@ -74,7 +86,7 @@ function sentencePlan(en,target,hi,max){max=max||12;en=String(en||'').replace(/\
     let idx=cl.findIndex(c=>c.some(t=>hi&&wordsOf(t).some(x=>hi(x))));if(idx<0)idx=0;
     let c=cl[idx];
     for(let d=1;c.length<4&&(idx-d>=0||idx+d<cl.length)&&c.length<max;d++){if(idx-d>=0&&cl[idx-d].length+c.length<=max)c=cl[idx-d].concat(c);if(c.length<4&&idx+d<cl.length&&cl[idx+d].length+c.length<=max)c=c.concat(cl[idx+d])}
-    if(c.length>max){const at=Math.max(0,c.findIndex(t=>hi&&wordsOf(t).some(x=>hi(x))));const s=Math.max(0,Math.min(at-4,c.length-10));c=c.slice(s,s+10)}
+    if(c.length>max)c=bestWindow(c,Math.max(0,c.findIndex(t=>hi&&wordsOf(t).some(x=>hi(x)))),max);
     toks=c;partial=true}
   let end='';
   const last=toks[toks.length-1];

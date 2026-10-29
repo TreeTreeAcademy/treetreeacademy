@@ -25,14 +25,15 @@ const NV={url:{},pend:{},off:0,el:null,tok:0,
   gen(){return /^#\/(learn|review)/.test(location.hash)},
   get(t,v,cacheOnly){const k=this.key(t,v);if(this.url[k])return Promise.resolve(this.url[k]);if(this.url[k]===null&&cacheOnly)return Promise.resolve(null);
     const pk=k+(cacheOnly?'#c':'');if(this.pend[pk])return this.pend[pk];
-    const q=`${CFG.ttsEndpoint}?v=${v}&t=${encodeURIComponent(String(t).replace(/\s+/g,' ').trim())}${cacheOnly?'&c=1':''}`;
+    const q=`${CFG.ttsEndpoint}?v=${v}&t=${encodeURIComponent(String(t).replace(/\s+/g,' ').trim())}${cacheOnly?'&c=1':''}&k=2`;
     return this.pend[pk]=fetch(q,{credentials:'same-origin'}).then(r=>{
         if(r.status===200)return r.blob().then(b=>this.url[k]=URL.createObjectURL(b));
         const why=r.headers.get('x-tts');if(why==='quota'||why==='daily_limit'||why==='ai_not_configured')this.off=Date.now()+30*60e3;
         if(cacheOnly)this.url[k]=this.url[k]||null;return null})
       .catch(()=>null).finally(()=>delete this.pend[pk])},
   prefetch(t,v){if(this.ok(t))this.get(t,v)},
-  stop(){this.tok++;if(this.el){try{this.el.pause()}catch(e){}}},
+  stop(){this.tok++;if(this.el){try{this.el.pause();this.el.currentTime=0}catch(e){}}},
+  hush(){this.stop();if(TTS.ok)speechSynthesis.cancel()},
   /* fb(): speechSynthesis fallback; plays natural audio if ready within ~4s */
   play(t,v,rate,fb,cb){if(TTS.ok)speechSynthesis.cancel();NV.stop();this.stop();const my=this.tok;
     if(!this.ok(t)){fb();return}
@@ -40,6 +41,10 @@ const NV={url:{},pend:{},off:0,el:null,tok:0,
     this.get(t,v,!this.gen()).then(u=>{if(done||my!==this.tok)return;done=true;clearTimeout(timer);
       if(!u){fb();return}const a=this.el||(this.el=new Audio());a.src=u;a.playbackRate=Math.max(.5,Math.min(1.3,rate||1));a.onended=cb||null;
       a.play().catch(()=>fb())})}};
+/* stop any speech when the screen changes (route/step re-render), the tab is hidden, or the page is left */
+document.addEventListener('visibilitychange',()=>{if(document.hidden)NV.hush()});
+window.addEventListener('pagehide',()=>NV.hush());
+if(app&&window.MutationObserver)new MutationObserver(()=>{if(Date.now()-(NV.t0||0)>120)NV.hush()}).observe(app,{childList:true});window.addEventListener('hashchange',()=>NV.hush());
 const say=(t,r,cb)=>NV.play(t,'n',(r||TTS.rate)/.9,()=>TTS.speak(t,r,cb),cb);
 
 /* ---------- user + storage ---------- */

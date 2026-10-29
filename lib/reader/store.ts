@@ -92,3 +92,22 @@ export async function kvIncr(k: string, by: number, ttlSec: number): Promise<num
   m.set(k, { v: String(n), exp: cur?.exp || Date.now() + ttlSec * 1000 }); persist();
   return n;
 }
+/** Delete every key matching a glob (SCAN-based; bounded). Returns how many were deleted. */
+export async function kvDelMatch(match: string, maxRounds = 200): Promise<number> {
+  let n = 0;
+  if (kvConfig()) {
+    let cur = "0";
+    for (let i = 0; i < maxRounds; i++) {
+      const [res] = await upstash([["SCAN", cur, "MATCH", match, "COUNT", 500]]);
+      if (!Array.isArray(res)) break;
+      cur = String(res[0]); const keys: string[] = res[1] || [];
+      if (keys.length) { await upstash([["DEL", ...keys]]); n += keys.length; }
+      if (cur === "0") break;
+    }
+    return n;
+  }
+  const m = await local(); const re = new RegExp("^" + match.split("*").map((s) => s.replace(/[.+?^${}()|[\]\\]/g, "\\$&")).join(".*") + "$");
+  for (const k of [...m.keys()]) if (re.test(k)) { m.delete(k); n++; }
+  if (n) persist();
+  return n;
+}
