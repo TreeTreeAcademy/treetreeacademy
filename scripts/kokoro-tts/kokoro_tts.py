@@ -57,11 +57,29 @@ def spoken(t):
     # single words: add a full stop so Kokoro reads them with a natural, falling "dictionary" intonation
     return t + "." if t.replace("'", "").isalpha() else t
 
+PAUSE = os.path.join(KDIR, "gemini-pause-until")
+
+def upgrade(site):
+    """Spend the free Gemini TTS quota on the clips most likely heard next; pause until midnight Pacific when used up."""
+    try:
+        if os.path.exists(PAUSE) and time.time() < float(open(PAUSE).read() or 0): return
+    except ValueError: pass
+    try: r = api(site, "/api/reader-import/tts", {"upgrade": {"max": 4}}, timeout=70)
+    except Exception as e: log("gemini upgrade error", type(e).__name__); return
+    log(f"gemini upgrade: {r.get('done', 0)} clips in {r.get('requests', 0)} requests, {r.get('pending', '?')} pending, quota_hit={r.get('quota')}")
+    if r.get("quota") or not r.get("pending"):
+        from datetime import datetime, timedelta
+        from zoneinfo import ZoneInfo
+        pt = datetime.now(ZoneInfo("America/Los_Angeles"))
+        nxt = (pt + timedelta(days=1)).replace(hour=0, minute=10, second=0, microsecond=0) if r.get("quota") else pt + timedelta(minutes=30)
+        open(PAUSE, "w").write(str(nxt.timestamp()))
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--site", default=os.environ.get("READER_SITE", "https://treetreeacademy.com"))
     ap.add_argument("--full", action="store_true"); ap.add_argument("--verify", action="store_true")
     ap.add_argument("--limit", type=int, default=100000)
+    ap.add_argument("--no-upgrade", action="store_true", help="skip the Gemini upgrade pass")
     o = ap.parse_args()
     os.makedirs(os.path.dirname(LOG), exist_ok=True)
     lock = open(os.path.join(KDIR, ".lock"), "w")
@@ -77,6 +95,7 @@ def main():
         done = (done - set(ks)) | have
     todo = [x for x in items if x["k"] not in done][: o.limit]
     log(f"{'full' if o.full else 'wants'}: {len(items)} items, {len(todo)} to voice")
+    if not o.no_upgrade: upgrade(o.site)
     if not todo:
         json.dump(sorted(done), open(DONE, "w")); return
     from kokoro_onnx import Kokoro

@@ -5,8 +5,10 @@
 // GET ?mode=get&t=&v=      -> audio/mpeg (verification)
 // POST {check:[k...]}      -> {have:[bool]}
 // POST {items:[{t,v,b64}]} -> {stored}
+// POST {upgrade:{max}}     -> Gemini clips for the most-likely-next items (free quota; {quota:true} when used up)
 import { importAuthorized, importDenied } from "@/lib/reader/importauth";
 import { collectAll, KK_VOICES, kkKey, kkNorm, kokoroClip, listWants, wantKeyOf } from "@/lib/reader/kokoro";
+import { runUpgrade } from "@/lib/reader/upgrade";
 import { kvDel, kvExists, kvKeys, kvSet, kvStats } from "@/lib/reader/store";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -31,6 +33,10 @@ export async function POST(req: Request) {
   if (!importAuthorized(req)) return importDenied();
   let body: any = {};
   try { body = JSON.parse(await req.text()); } catch { return J({ error: "bad json" }, 400); }
+  if (body.upgrade) {
+    if (!process.env.GEMINI_API_KEY) return J({ quota: true, detail: "ai_not_configured" });
+    return J(await runUpgrade(45000, Math.min(8, Number(body.upgrade.max) || 4)));
+  }
   if (Array.isArray(body.check)) {
     const ks = body.check.filter((k: any) => typeof k === "string" && k.startsWith("reader:kk:v1:")).slice(0, 2000);
     return J({ have: await kvExists(ks), keys: ks });

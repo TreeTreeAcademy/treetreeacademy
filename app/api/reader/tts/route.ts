@@ -4,14 +4,14 @@
 import { requireUser, unauthorized } from "@/lib/reader/session";
 import { cachedTts, generateTts, generateTtsBatch, normText, purgeOld, ttsKey, VOICES } from "@/lib/reader/tts";
 import { kvExists } from "@/lib/reader/store";
-import { kkKey, kokoroClip, recordWant } from "@/lib/reader/kokoro";
+import { kkKey, kkNorm, kokoroClip, recordWant } from "@/lib/reader/kokoro";
 import { consume, remaining } from "@/lib/reader/limits";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const audio = (b: Buffer, src = "gemini") => new Response(new Uint8Array(b), { headers: { "Content-Type": "audio/mpeg", "x-tts-src": src, "Cache-Control": src === "kokoro" ? "private, max-age=31536000, immutable" : "private, max-age=3600" } });
+const audio = (b: Buffer, src = "gemini") => new Response(new Uint8Array(b), { headers: { "Content-Type": "audio/mpeg", "x-tts-src": src, "Cache-Control": src === "kokoro" ? "private, max-age=86400" : "private, max-age=31536000, immutable" } });
 const none = (why: string) => new Response(null, { status: 204, headers: { "x-tts": why, "Cache-Control": "no-store" } });
 
 export async function GET(req: Request) {
@@ -21,11 +21,12 @@ export async function GET(req: Request) {
   const u = new URL(req.url);
   const t = normText(u.searchParams.get("t") || ""), v = u.searchParams.get("v") || "n";
   if (!t || !/[a-z]/i.test(t) || !VOICES[v]) return none("bad");
+  // 1) saved Gemini clip  2) saved Kokoro clip (instant)  3) live Gemini (only when neither exists)
+  const hit = (await cachedTts(t, v)) || (kkNorm(t) !== t ? await cachedTts(kkNorm(t), v) : null);
+  if (hit) return audio(hit);
   const kk = await kokoroClip(t, v);
   if (kk) return audio(kk, "kokoro");
   await recordWant(t, v);
-  const hit = await cachedTts(t, v);
-  if (hit) return audio(hit);
   if (u.searchParams.get("c") === "1") return none("miss");
   if (!process.env.GEMINI_API_KEY) return none("ai_not_configured");
   if ((await remaining("tts", user)) <= 0) return none("daily_limit");
