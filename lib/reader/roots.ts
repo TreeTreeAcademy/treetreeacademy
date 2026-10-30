@@ -43,7 +43,9 @@ For EACH English word return:
   family:   同族词：growth（成长）、grown-up（大人）
   none:     "" (empty string)
 - confident: true ONLY if this is real, standard etymology found in dictionaries (Etymonline, Merriam-Webster, Oxford). 
-STRICT RULES: Never invent etymology or folk etymology. Do not split a word into fake pieces (e.g. "carpet" is NOT car+pet, "hello" is NOT hell+o, "island" is NOT is+land). Inflections like -s/-ed/-ing only count if they really are the suffix in this word. Name the source language only when you are sure. If in any doubt, use kind "none" with an empty note. Do not add anything else.
+STRICT RULES: Never invent etymology or folk etymology. Do not split a word into fake pieces (e.g. "carpet" is NOT car+pet, "hello" is NOT hell+o, "island" is NOT is+land). Inflections like -s/-ed/-ing only count if they really are the suffix in this word. Name the source language only when you are sure. Family words must be genuinely derived from the same root (NOT plurals, past tenses or -ing forms, NOT a homonym with a different origin such as bear the animal vs bear = carry, NOT made-up words); otherwise use "none".
+For Latin/Greek roots give the real source word (e.g. "-pear（拉丁语 parere，出现）"); never translate a meaningless fragment (e.g. appear is NOT ap- + pear "梨", delight has nothing to do with light, every is NOT ever + y). Proper names / invented names → "none".
+If in any doubt, use kind "none" with an empty note. Do not add anything else.
 Words:\n`;
 
 export type Root = { n: string; k: string };
