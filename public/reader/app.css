@@ -268,3 +268,7 @@ textarea{font-family:var(--en);min-height:180px}
 .tkq-ai{text-align:center;font-size:.72rem;color:#6a5bc4;margin:8px 0}
 .snq .tb.snq-fix{opacity:.6;background:#eef2ea;border-style:dashed;cursor:default}
 .roots{margin:10px auto 0;max-width:34em;font-size:.78rem;line-height:1.45;color:#9aa0a6;text-align:center}.roots:empty{display:none}
+/* word card: stack both faces in one grid cell so the card grows with the back's content (no overflow / hint overlap) */
+.flip .in{display:grid}
+.flip .face{position:relative;inset:auto;grid-area:1/1;min-height:340px;padding-bottom:12px}
+.flip .face .hint{position:static;margin-top:12px}

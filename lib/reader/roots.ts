@@ -66,7 +66,14 @@ function validate(word: string, e: any): Root | null {
     if (!parts.every((p) => n.toLowerCase().replace(/[^a-z]/g, " ").includes(p) || n.toLowerCase().includes(p))) return { n: "", k: "none" };
     if (k === "compound" && parts.join("") !== w) return { n: "", k: "none" };
   }
-  if (k === "family" && !/[a-z]{2,}/i.test(n)) return { n: "", k: "none" };
+  if (k === "family") {
+    // light sanity check: listed words must be real-looking, not the word itself or a bare inflection
+    const fam = (n.match(/[a-z][a-z'-]+/gi) || []).map((x: string) => x.toLowerCase());
+    const infl = new Set([w, w + "s", w + "es", w + "ed", w + "d", w + "ing", w.replace(/e$/, "") + "ing", w + w.slice(-1) + "ed", w + w.slice(-1) + "ing"]);
+    const good = fam.filter((x: string) => !infl.has(x));
+    if (!good.length || fam.length !== good.length) return { n: "", k: "none" };
+  }
+  if (/\d/.test(n)) return { n: "", k: "none" };
   return { n, k };
 }
 

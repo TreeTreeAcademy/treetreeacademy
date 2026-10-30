@@ -16,5 +16,7 @@ n=0
 while true; do
   if [ $((n % 720)) -eq 0 ]; then a="--full --verify"; elif [ $((n % 15)) -eq 0 ]; then a="--full"; else a=""; fi
   OMP_NUM_THREADS=4 timeout -k 30 20m nice -n 10 "$PY" "$HERE/kokoro_tts.py" $a || echo "$(date '+%F %T') run exited $?"
+  # 词根词缀 notes: every ~2 h (60 × 2 min); roots_pass.sh self-pauses on the daily cap / when done
+  if [ $((n % 60)) -eq 0 ]; then timeout 6m "$HERE/roots_pass.sh"; fi
   n=$((n + 1)); sleep 120
 done
