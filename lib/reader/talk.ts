@@ -82,7 +82,7 @@ export async function generateTalk(items: { id: string; words: string[]; hint: s
     out[it.id] = t;
     await kvSet(talkKey(it.id), JSON.stringify(t));
     // tell the box voice job about the new lines right away
-    void Promise.all([recordWant(t.a.en, "a"), recordWant(t.ok.en, "b"), ...t.wrong.map((w) => recordWant(w.en, "b"))]).catch(() => {});
+    await Promise.all([recordWant(t.a.en, "a"), recordWant(t.ok.en, "b"), ...t.wrong.map((w) => recordWant(w.en, "b"))]).catch(() => {});
   }
   return { talks: out, model: r.model, ms: r.ms };
 }

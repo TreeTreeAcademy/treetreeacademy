@@ -58,12 +58,18 @@ const NV={tried:{},buf:{},miss:{},pend:{},off:0,tok:0,ctx:null,src:null,el:null,
       const now=c.currentTime,d=b.duration/rate;g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(1,now+.01);g.gain.setValueAtTime(1,Math.max(now+.01,now+d-.04));g.gain.linearRampToValueAtTime(0,now+d);
       s.connect(g).connect(c.destination);s.onended=()=>{if(this.src===s)this.src=null;cb&&cb()};this.src=s;s.start();return}
     const a=this.el||(this.el=new Audio());a.src=b.u;a.preservesPitch=true;a.playbackRate=rate;a.onended=cb||null;a.play().catch(()=>fb())},
-  /* fb(): speechSynthesis fallback, used only when no natural clip can be had within ~7s */
+  /* fb(): speechSynthesis — a true last resort. If no natural clip exists yet (e.g. a brand-new dialogue line the box is
+     voicing right now), show 「正在准备声音…」 and keep polling the saved clip for up to WAIT ms before giving up. */
+  WAIT:25000,
   play(t,v,rate,fb,cb){this.unlock();if(TTS.ok)speechSynthesis.cancel();this.stop();const my=this.tok;this.t0=Date.now();
     if(!this.ok(t)){fb();return}
-    rate=Math.max(.5,Math.min(1.3,rate||1));
-    let done=false;const timer=setTimeout(()=>{if(!done&&my===this.tok){done=true;fb()}},7000);
-    this.get(t,v,!this.gen()).then(b=>{if(done||my!==this.tok)return;done=true;clearTimeout(timer);if(!b){fb();return}this.out(b,rate,cb,fb)})}};
+    rate=Math.max(.5,Math.min(1.3,rate||1));const k=this.key(t,v),t0=Date.now();let note=0;
+    const live=()=>my===this.tok,go=b=>{if(note)toast('',1);this.out(b,rate,cb,fb)};
+    const poll=()=>{if(!live())return;
+      if(Date.now()-t0>this.WAIT){if(note)toast('',1);fb();return}
+      if(!note){note=1;toast('🎧 正在准备声音…',this.WAIT)}
+      delete this.miss[k];this.get(t,v,true).then(b=>{if(!live())return;if(b)go(b);else setTimeout(poll,2500)})};
+    this.get(t,v,!this.gen()).then(b=>{if(!live())return;if(b)go(b);else poll()})}};
 document.addEventListener('pointerdown',()=>NV.unlock(),{passive:true});
 /* stop any speech when the screen changes (route/step re-render), the tab is hidden, or the page is left */
 document.addEventListener('visibilitychange',()=>{if(document.hidden)NV.hush()});
@@ -243,7 +249,7 @@ function viewLearn(){nav('learn');const before=JSON.stringify(S.session.learn||n
   if(!L||!L.list||!L.list.length){const q=queuedWords();
     if(!q.length){app.innerHTML=`<div class="zone-h"><span class="tag">🎓 学习区</span></div><div class="empty"><div class="e">🌱</div>学习区还是空的。<br>去 <a href="#/">学习来源</a> 的原文里点选想学的单词吧！<br><br><a class="btn sec" href="#/vault">🏆 去成就仓选词</a></div>`;return}
     L=newRound()}
-  if(JSON.stringify(S.session.learn||null)!==before)save();kickPrep(L.list);loadDict();
+  if(JSON.stringify(S.session.learn||null)!==before)save();kickPrep(L.list);loadDict();if(L.kind==='queue')setTimeout(()=>preTalk(L.list),1500);
   renderLearn()}
 function renderLearn(){const L=S.session.learn;if(L.i>=L.list.length)return finishLearn();
   const w=L.list[L.i],c=content(w),rec=S.words[w]||{};const tot=L.list.length*NSTEP;
@@ -537,7 +543,7 @@ function viewReview(){nav('review');let R=S.session.review;
   if(!NV.bq||NV.bq!==R){NV.bq=R;NV.batch(R.list)}
   R.phase==='match'?renderMatch():R.phase==='talk'?renderTalk():renderDialog()}
 function rounds(list){const n=Math.ceil(list.length/5),out=[];const size=Math.ceil(list.length/n);for(let i=0;i<list.length;i+=size)out.push(list.slice(i,i+size));return out}
-function renderMatch(){const R=S.session.review;const rs=rounds(R.list);if(!R.round&&!R.tpre){R.tpre=1;R.tg=talkGroups(R.list);fetchTalk(R.tg).then(()=>prefetchTalkAudio(R.tg))}if(R.round>=rs.length){return afterMatch()}
+function renderMatch(){const R=S.session.review;const rs=rounds(R.list);if(!R.round&&!R.tpre){R.tpre=1;const P=S.session.ptg;R.tg=P&&P.w===R.list.slice().sort().join('|')?P.g:talkGroups(R.list);fetchTalk(R.tg).then(()=>prefetchTalkAudio(R.tg))}if(R.round>=rs.length){return afterMatch()}
   const set=rs[R.round];const left=shuffle(set),right=shuffle(set);let sel=null,left2=set.length;
   app.innerHTML=`<div class="zone-h"><span class="tag rv">🔁 复习区 · 连连看</span><b>第 ${R.round+1} / ${rs.length} 轮</b><div class="bar"><b style="width:${R.round/rs.length*100}%"></b></div></div>
    <p class="muted center">先点英文，再点对应的中文。配错的单词会进入「情景对话」继续练习。</p>
@@ -568,7 +574,10 @@ function fetchTalk(groups){const ids=groups.map(tId);const wait=ids.filter(i=>TK
     .then(r=>r.ok?r.json():{}).then(j=>{TK.detail=j&&j.detail;let n=0;for(const[k,t]of Object.entries((j&&j.talks)||{})){S.tk2[k]=t;n++}if(n)save();prefetchTalkAudio(groups)})
     .catch(()=>{}).then(()=>need.forEach(g=>delete TK.busy[tId(g)]));
   need.forEach(g=>TK.busy[tId(g)]=pr);return Promise.all([pr,...wait])}
-function prefetchTalkAudio(groups){groups.slice(0,4).forEach(g=>{const t=S.tk2[tId(g)];if(t)NV.prefetch(t.a.en,'a')})}
+function prefetchTalkAudio(groups){groups.slice(0,6).forEach(g=>{const t=S.tk2[tId(g)];if(!t)return;NV.get(t.a.en,'a',true);[t.ok,...(t.wrong||[]).slice(0,3)].forEach(o=>o&&NV.get(o.en,'b',true))})}
+/* build this round's review dialogues as soon as the round starts, so the box has minutes to voice them before 复习区 */
+function preTalk(list){if(!list||!list.length)return;const P=S.session.ptg;if(P&&P.w===list.slice().sort().join('|'))return fetchTalk(P.g).then(()=>prefetchTalkAudio(P.g));
+  const g=talkGroups(list);S.session.ptg={w:list.slice().sort().join('|'),g};save();fetchTalk(g).then(()=>prefetchTalkAudio(g))}
 function talkVoice(who){const vs=TTS.ok?speechSynthesis.getVoices().filter(x=>/^en[-_](US|GB|AU)$/i.test(x.lang)):[];if(!vs.length)return null;
   const a=TTS.v||TTS.pick();if(who==='a')return a;return vs.find(x=>x!==a&&/en[-_]US/i.test(x.lang))||vs.find(x=>x!==a)||a}
 function sayAs(t,who,rate){NV.play(t,who,(rate||.88)/.88,()=>sayAsSynth(t,who,rate))}
@@ -581,7 +590,7 @@ function renderTalk(waited){const R=S.session.review;if(!R.tq||!R.tq.length){R.p
       fetchTalk(R.tq).then(()=>{const r2=S.session.review;if(location.hash.startsWith('#/review')&&r2&&r2.phase==='talk'&&r2.tq&&tId(r2.tq[0]||[])===id)renderTalk(true)});return}
     // AI unavailable (quota / offline): skip this group, words still reviewed in the other steps
     toast(TK.detail==='daily_limit'?'今天的 AI 对话额度用完了，先跳过这一段':'AI 对话暂时生成不了，先跳过这一段',2200);R.tq.shift();save();return renderTalk()}
-  if(R.tq.length>1)fetchTalk(R.tq.slice(1)).then(()=>prefetchTalkAudio(R.tq.slice(1,2)));NV.prefetch(t.ok.en,'b');
+  if(R.tq.length>1)fetchTalk(R.tq.slice(1)).then(()=>prefetchTalkAudio(R.tq.slice(1,2)));NV.prefetch(t.ok.en,'b');prefetchTalkAudio([g]);
   const opts=shuffle([t.ok,...t.wrong.slice(0,3)]);
   app.innerHTML=head+`<div class="tkq">
    <div class="center" style="margin-bottom:10px"><span class="target">🎯 ${g.map(w=>`<b class="en">${esc(w)}</b> ${esc(shortZh(content(w).zh))}`).join(' · ')}</span></div>

@@ -5,7 +5,7 @@
 // Content for the backfill is read from the store at runtime (books, shared sources, lex, dialogues, progress);
 // nothing about the books lives in git.
 import { createHash } from "node:crypto";
-import { kvGet, kvKeys, kvMGet, kvSetNx } from "@/lib/reader/store";
+import { kvGet, kvKeys, kvMGet, kvSetNx, kvSet } from "@/lib/reader/store";
 import { listUsers } from "@/lib/reader/users";
 import { listBooks, getBook } from "@/lib/reader/mybooks";
 import { listShared, kSrc } from "@/lib/reader/shared";
@@ -28,7 +28,7 @@ export async function kokoroClip(t: string, v: string): Promise<Buffer | null> {
 export async function recordWant(t: string, v: string) {
   const n = kkNorm(t);
   if (!KK_VOICES[v] || !n || !/[a-z]/i.test(n) || /[\u3000-\u9fff]/.test(n)) return;
-  try { await kvSetNx(wantKey(n, v), JSON.stringify({ t: n, v }), 30 * 86400); } catch { /* best effort */ }
+  try { if (await kvSetNx(wantKey(n, v), JSON.stringify({ t: n, v }), 30 * 86400)) await kvSet(WANT_FLAG, String(Date.now()), 30 * 86400); } catch { /* best effort */ }
 }
 export async function listWants(): Promise<{ t: string; v: string }[]> {
   const ks = await kvKeys("reader:kkw:*", 5000);
@@ -39,6 +39,8 @@ export async function listWants(): Promise<{ t: string; v: string }[]> {
   return out;
 }
 export const wantKeyOf = wantKey;
+// one cheap GET for the box watcher: ms timestamp of the newest "wanted" clip
+export const WANT_FLAG = "reader:kkw-flag";
 
 // ---------- content collection ----------
 const TOK = /[A-Za-z]+(?:['’][A-Za-z]+)?/g;

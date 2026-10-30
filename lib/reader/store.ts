@@ -114,8 +114,9 @@ export async function kvDelMatch(match: string, maxRounds = 200): Promise<number
 
 /** SET only if absent (with TTL). */
 export async function kvSetNx(k: string, v: string, ttlSec: number) {
-  if (kvConfig()) { await upstash([["SET", k, v, "NX", "EX", ttlSec]]); return; }
-  const m = await local(); if (!alive(m.get(k))) { m.set(k, { v, exp: Date.now() + ttlSec * 1000 }); persist(); }
+  if (kvConfig()) { const r: any = await upstash([["SET", k, v, "NX", "EX", ttlSec]]); return JSON.stringify(r ?? "").includes("OK"); }
+  const m = await local(); if (!alive(m.get(k))) { m.set(k, { v, exp: Date.now() + ttlSec * 1000 }); persist(); return true; }
+  return false;
 }
 /** Keys matching a glob (SCAN-based; bounded). */
 export async function kvKeys(match: string, max = 20000): Promise<string[]> {
