@@ -259,7 +259,7 @@ function renderLearn(){const L=S.session.learn;if(L.i>=L.list.length)return fini
      <div class="face f"><div class="big">${esc(w)}</div><div class="ipa">${esc(c.us||'')} <span class="faint" style="font-size:.75rem">美</span></div><button class="ico" data-say="${esc(w)}" style="width:48px;height:48px;font-size:1.3rem">🔊</button><div class="hint">👆 点击卡片翻面</div></div>
      <div class="face b"><div class="big" style="font-size:2rem">${esc(w)} <button class="ico" data-say="${esc(w)}">🔊</button></div><div class="zhbig">${esc(c.zh||'（暂无释义）')}</div>
       ${rec.en?`<div class="ex">${speakable(rec.en,w)} <button class="ico" data-say="${esc(rec.en)}">▶</button>${rec.szh?`<small>${esc(rec.szh)}</small>`:''}<div class="from">原文 · ${esc(rec.srcTitle||'')}${rec.p?' p.'+rec.p:''}</div></div>`:''}
-      <div class="hint">👆 再点翻回正面</div></div></div></div>
+      <div class="hint">👆 再点翻回正面</div></div></div></div>${rootsHTML(w)}
      <div class="actions"><button class="btn sec" data-act="flip">🔄 翻面</button><button class="btn" data-act="next">记住了，下一步 →</button></div>`;
     setTimeout(()=>say(w),250);
   }else if(L.step===1){
@@ -309,6 +309,17 @@ function renderSceneStatic(w,head,c){const L=S.session.learn;
 
 /* ---------- ⑤ 用法场景 = 译文选择题 (read the English, pick the right Chinese) ---------- */
 const QZ={p:null,busy:{}};
+/* 词根词缀 notes (shared server cache; local copy in its own localStorage key, not synced with progress) */
+const RT=(()=>{try{return JSON.parse(localStorage.getItem('tt_roots_v1')||'{}')}catch(e){return{}}})();const RTbusy={};
+const rootsOf=w=>{const v=RT[String(w).toLowerCase()];return typeof v==='string'?v:''};
+const rootsHTML=w=>`<div class="roots" data-roots="${esc(String(w).toLowerCase())}">${rootsOf(w)?'💡 '+esc(rootsOf(w)):''}</div>`;
+function paintRoots(){$$('[data-roots]').forEach(el=>{if(el.dataset.hold)return;const n=RT[el.dataset.roots];el.innerHTML=n?'💡 '+esc(n):''})}
+function prefetchRoots(list){if(!CFG.rootsEndpoint)return;const ws=(list||[]).map(w=>String(w).toLowerCase()).filter(w=>!(w in RT)&&!RTbusy[w]).slice(0,25);
+  if(!ws.length)return;ws.forEach(w=>RTbusy[w]=1);
+  fetch(CFG.rootsEndpoint,{method:'POST',credentials:'same-origin',headers:{'content-type':'application/json'},body:JSON.stringify({words:ws})})
+    .then(r=>r.ok?r.json():{}).then(j=>{const r=j&&j.roots||{};let n=0;for(const w of ws)if(typeof r[w]==='string'){RT[w]=r[w];n++}
+      if(n){try{localStorage.setItem('tt_roots_v1',JSON.stringify(RT))}catch(e){}paintRoots()}})
+    .catch(()=>{}).then(()=>ws.forEach(w=>delete RTbusy[w]))}
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function sceneOf(w,c){const sc=c.scene;if(sc&&sc[1]&&sc[2])return{t:sc[0],en:sc[1],zh:sc[2],label:sc[3],url:sc[4]};
   const rec=S.words[w]||{};return rec.en&&rec.szh?{t:'book',en:rec.en,zh:rec.szh,label:rec.srcTitle}:null}
@@ -332,7 +343,7 @@ function fallbackOpts(w,s){const rec=S.words[w]||{};const seen=new Set([zkey(s.z
   Object.entries(LEX).forEach(([k,e])=>{if(k!==w&&e&&e.scene&&e.scene[2])add(e.scene[2])});
   const L=zkey(s.zh).length;cand.sort((a,b)=>Math.abs(zkey(a.z).length-L)-Math.abs(zkey(b.z).length-L)-(a.book?4:0)+(b.book?4:0));
   const pick=[];for(const x of shuffle(cand.slice(0,10))){if(pick.length<3&&!tooSimilar([s.zh,...pick,x.z]))pick.push(x.z)}return pick.length>=2?pick:null}
-function kickPrep(list){NV.batch(list||[]);QZ.p=Promise.resolve(enrichMissing(list)).then(()=>prefetchQuiz(list)).catch(()=>{})}
+function kickPrep(list){NV.batch(list||[]);prefetchRoots(list);QZ.p=Promise.resolve(enrichMissing(list)).then(()=>prefetchQuiz(list)).catch(()=>{})}
 function prefetchQuiz(list){if(!CFG.quizEndpoint)return null;
   const items=[];(list||[]).forEach(w=>{const s=sceneOf(w,content(w));if(s&&!quizOpts(w,s)&&!QZ.busy[w+'|'+s.en])items.push({w,en:s.en,zh:s.zh})});
   if(!items.length)return null;items.forEach(x=>QZ.busy[x.w+'|'+x.en]=1);
@@ -392,7 +403,8 @@ function dragKit(root,hooks){let d=null;
 const missOnce=w=>{const r=S.words[w];if(r){r.miss=(r.miss||0)+1;save()}};
 const PRAISE=['太棒了！🎉','答对啦！⭐','真厉害！👏','完美！🌟'];
 
-/* ② 拼写补全 */
+/* ② 拼写补全 — the 词根词缀 note stays hidden until the answer is checked/shown (it would give letters away) */
+function showSpRoots(){const el=$('#sp-roots');if(el){delete el.dataset.hold;paintRoots()}}
 function renderSpell(w,head,c){const L=S.session.learn;
   if(!DICT.ready){loadDict().then(()=>{const l=S.session.learn;if(l&&l.list&&l.list[l.i]===w&&l.step===1&&location.hash.startsWith('#/learn'))renderLearn()});app.innerHTML=head+'<div class="empty">…</div>';return}
   const pl=PH.plan(w);const dis=PH.distractors(pl,DICT.set);
@@ -419,7 +431,8 @@ function renderSpell(w,head,c){const L=S.session.learn;
     <div id="sp-msg" class="sp-msg" aria-live="polite">拖一拖，或者点一下字母放进空格；点空格里的字母可以拿回来</div>
     <div id="sp-pool" class="sp-pool" data-drop="pool"></div>
     <div class="actions"><button class="btn" id="sp-check" data-act="spcheck" disabled>✅ 检查答案</button></div>
-    <div id="sp-after" class="actions hidden"><button class="btn" data-act="next">下一步：搭配选择 →</button></div></div>`;
+    <div id="sp-after" class="actions hidden"><button class="btn" data-act="next">下一步：搭配选择 →</button></div>
+    <div class="roots" id="sp-roots" data-roots="${esc(w.toLowerCase())}" data-hold="1"></div></div>`;
   paint();setTimeout(()=>say(w),300);
   const msg=(h,cls)=>{const m=$('#sp-msg');m.className='sp-msg'+(cls?' '+cls:'');m.innerHTML=h};
   const place=(id,i)=>{const cur=st.slots[i];const from=st.slots.indexOf(id);if(from>=0)st.slots[from]=cur&&!st.locked.has(i)?cur:null;st.slots[i]=id;st.wrong.delete(i);st.wrong.delete(from)};
@@ -439,7 +452,7 @@ function renderSpell(w,head,c){const L=S.session.learn;
     st.tries++;
     if(okExact||alt){st.done=true;st.wrong.clear();paint();$('#sp-word').classList.add('full');
       $('#sp-word').innerHTML=pl.pieces.map(p=>`<span class="${p.blank?'fill':'vis'}">${esc(p.t)}</span>`).join('');
-      msg(`${PRAISE[Math.random()*PRAISE.length|0]} <b class="en">${esc(alt?full:pl.word)}</b>`,'good');$('#sp-check').classList.add('hidden');$('#sp-after').classList.remove('hidden');
+      msg(`${PRAISE[Math.random()*PRAISE.length|0]} <b class="en">${esc(alt?full:pl.word)}</b>`,'good');$('#sp-check').classList.add('hidden');$('#sp-after').classList.remove('hidden');showSpRoots();
       say('Great job! '+(alt?full:pl.word));return}
     if(st.tries===1)missOnce(w);
     // mark wrong letters (keep the right ones), send the wrong ones back
@@ -447,7 +460,7 @@ function renderSpell(w,head,c){const L=S.session.learn;
     if(st.tries>=3){st.shownAnswer=true;st.done=true;const letters=[...pl.letters];const used=new Set();
       st.slots=letters.map(chv=>{const t=tiles.find(t=>t.ch===chv&&!used.has(t.id));used.add(t.id);return t.id});st.wrong.clear();paint();
       $('#sp-word').innerHTML=pl.pieces.map(p=>`<span class="${p.blank?'fill shown':'vis'}">${esc(p.t)}</span>`).join('');
-      msg(`没关系，我们一起看答案：<b class="en">${esc(pl.word)}</b>，多读几遍就记住啦 💪`,'hint');$('#sp-check').classList.add('hidden');$('#sp-after').classList.remove('hidden');say(w);return}
+      msg(`没关系，我们一起看答案：<b class="en">${esc(pl.word)}</b>，多读几遍就记住啦 💪`,'hint');$('#sp-check').classList.add('hidden');$('#sp-after').classList.remove('hidden');showSpRoots();say(w);return}
     st.wrong=new Set(wrongIdx);paint();
     const first=wrongIdx[0];
     setTimeout(()=>{if(st.done)return;wrongIdx.forEach(i=>{if(!(st.tries===2&&i===first))st.slots[i]=null;});

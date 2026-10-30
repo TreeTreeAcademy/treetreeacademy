@@ -5,6 +5,7 @@ window.TT_CONFIG = {
   parseEndpoint: "/api/reader/parse",     // upload photo/screenshot/audio -> Learning Source JSON
   enrichEndpoint: "/api/reader/enrich",   // optional AI content for words not in lexicon.js
   quizEndpoint: "/api/reader/quizopts",
+  rootsEndpoint: "/api/reader/roots",     // 词根词缀 notes (AI, cached)
   talkEndpoint: "/api/reader/talk",       // 复习区 听对话选回答 (AI dialogues, cached)   // 译文选择题 distractors (AI, cached; falls back to other sentences offline)
   ttsEndpoint: "/api/reader/tts",         // natural Gemini TTS mp3 (cached); falls back to speechSynthesis
   progressEndpoint: "/api/reader/progress", // optional server sync (KV); falls back to localStorage only

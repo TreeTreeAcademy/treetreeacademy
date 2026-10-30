@@ -267,3 +267,4 @@ textarea{font-family:var(--en);min-height:180px}
 .tkq-help{border:1px dashed var(--border);background:transparent;color:var(--muted);border-radius:999px;padding:8px 16px;font-size:.9rem}
 .tkq-ai{text-align:center;font-size:.72rem;color:#6a5bc4;margin:8px 0}
 .snq .tb.snq-fix{opacity:.6;background:#eef2ea;border-style:dashed;cursor:default}
+.roots{margin:10px auto 0;max-width:34em;font-size:.78rem;line-height:1.45;color:#9aa0a6;text-align:center}.roots:empty{display:none}

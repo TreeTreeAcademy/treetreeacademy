@@ -3,6 +3,7 @@
 import { importAuthorized, importDenied } from "@/lib/reader/importauth";
 import { BOOK_ID_RE, USER_RE, deleteBook, saveBook } from "@/lib/reader/mybooks";
 import { userExists } from "@/lib/reader/users";
+import { ensureRoots } from "@/lib/reader/roots";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -26,7 +27,10 @@ export async function PUT(req: Request, ctx: Ctx) {
   if (!src || !Array.isArray(src.pages) || !Array.isArray(src.sentences) || !Array.isArray(src.words)) return Response.json({ error: "bad source" }, { status: 400 });
   src.id = a.id;
   const imgStore = ["blob", "kv", "none"].includes(j.imgStore) ? j.imgStore : "none";
-  return Response.json({ ok: true, ...(await saveBook(a.user, src, { imgStore, imgBytes: Number(j.imgBytes) || 0 })) });
+  const saved = await saveBook(a.user, src, { imgStore, imgBytes: Number(j.imgBytes) || 0 });
+  // 词根词缀 notes for the new book's words (best effort; the rest are generated lazily / by the box pass)
+  const roots = await ensureRoots(src.words.map((w: any) => String(w?.w || "")), 20000, 2).catch(() => null);
+  return Response.json({ ok: true, ...saved, roots: roots ? { calls: roots.calls, missing: roots.missing } : null });
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {
