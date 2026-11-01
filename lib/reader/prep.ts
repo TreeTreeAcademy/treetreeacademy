@@ -25,7 +25,7 @@ export async function prepTalks(words: { w: string; zh: string }[], budgetMs = 4
 }
 export async function prepBook(src: any) {
   const queued = await queueBookVoice(src).catch(() => 0);
-  const talks = await prepTalks(bookWords(src), 35000, 4).catch(() => null);
+  const talks = await prepTalks(bookWords(src), 20000, 3).catch(() => null);
   return { queued, talks };
 }
 /** box loop: finish dialogues for all uploaded books */
@@ -34,5 +34,5 @@ export async function prepAllTalks(maxCalls = 4) {
   const words: { w: string; zh: string }[] = [];
   for (let i = 0; i < ks.length; i += 50) for (const s of await kvMGet(ks.slice(i, i + 50))) { try { s && words.push(...bookWords(JSON.parse(s))); } catch { /* skip */ } }
   void kvGet;
-  return prepTalks(words, 45000, maxCalls);
+  return prepTalks(words, 20000, Math.min(maxCalls, 2));
 }
