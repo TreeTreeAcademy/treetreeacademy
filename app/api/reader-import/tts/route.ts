@@ -1,3 +1,4 @@
+import { prepAllTalks, queueBookVoice } from "@/lib/reader/prep";
 // Box-side Kokoro voice pipeline (scripts/kokoro-tts). Bearer READER_IMPORT_TOKEN, else 404.
 // GET ?mode=collect        -> {items:[{t,v,k}], sources}   everything the reader may speak (from the store)
 // GET ?mode=wants          -> {items:[{t,v,k}]}            clips the reader asked for but we don't have
@@ -34,6 +35,12 @@ export async function POST(req: Request) {
   if (!importAuthorized(req)) return importDenied();
   let body: any = {};
   try { body = JSON.parse(await req.text()); } catch { return J({ error: "bad json" }, 400); }
+  if (body.prepTalks) return J(await prepAllTalks(Math.min(5, Number(body.prepTalks.max) || 4)));
+  if (body.queueAll) { // re-queue every uploaded book's clips (idempotent; only new wants set the flag)
+    const ks = await kvKeys("reader:mybook:*", 5000); let n = 0;
+    for (const k of ks) { const s = await kvGet(k); if (s) n += await queueBookVoice(JSON.parse(s)); }
+    return J({ books: ks.length, items: n });
+  }
   if (body.upgrade) {
     if (!process.env.GEMINI_API_KEY) return J({ quota: true, detail: "ai_not_configured" });
     return J(await runUpgrade(45000, Math.min(8, Number(body.upgrade.max) || 4)));

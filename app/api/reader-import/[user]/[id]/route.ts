@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { prepBook } from "@/lib/reader/prep";
 // PUT -> save an assembled book source for a reader (images must be PUT first); DELETE -> remove it.
 // Bearer READER_IMPORT_TOKEN. Not under /api/reader/* so the cookie middleware does not apply.
 import { importAuthorized, importDenied } from "@/lib/reader/importauth";
@@ -28,6 +30,7 @@ export async function PUT(req: Request, ctx: Ctx) {
   src.id = a.id;
   const imgStore = ["blob", "kv", "none"].includes(j.imgStore) ? j.imgStore : "none";
   const saved = await saveBook(a.user, src, { imgStore, imgBytes: Number(j.imgBytes) || 0 });
+  after(() => prepBook(src).catch(() => {})); // voice + dialogues now, not on first use
   // 词根词缀 notes for the new book's words (best effort; the rest are generated lazily / by the box pass)
   const roots = await ensureRoots(src.words.map((w: any) => String(w?.w || "")), 20000, 2).catch(() => null);
   return Response.json({ ok: true, ...saved, roots: roots ? { calls: roots.calls, missing: roots.missing } : null });

@@ -563,8 +563,8 @@ function renderMatch(){const R=S.session.review;const rs=rounds(R.list);if(!R.ro
 function afterMatch(){const R=S.session.review;R.phase='talk';R.tq=R.tg||talkGroups(R.list);R.tn=R.tq.length;R.tmiss=0;save();
   app.innerHTML=`<div class="empty"><div class="e">🎧</div><h2>连连看完成！</h2>下一关：听对话，选回答</div>`;setTimeout(()=>{if(location.hash.startsWith('#/review'))renderTalk()},1200)}
 /* ===== 复习区 · 听对话选回答 (AI dialogues from the review words, 2 words per line) ===== */
-function talkGroups(list){const l=shuffle(list),g=[];for(let i=0;i<l.length;i+=2)g.push(l.slice(i,i+2));
-  if(g.length>1&&g[g.length-1].length===1)g[g.length-2].push(g.pop()[0]);return g.slice(0,12)}
+/* one word per dialogue: these are pre-built (and voiced) when a book is uploaded */
+function talkGroups(list){return shuffle(list).slice(0,10).map(w=>[w])}
 const tId=ws=>ws.map(w=>w.trim().toLowerCase()).sort().join('|');
 const TK={busy:{}};
 function fetchTalk(groups){const ids=groups.map(tId);const wait=ids.filter(i=>TK.busy[i]).map(i=>TK.busy[i]);

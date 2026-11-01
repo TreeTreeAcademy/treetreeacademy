@@ -84,6 +84,8 @@ async function scanVals(match: string, fn: (v: any) => void) {
   return ks.length;
 }
 /** Everything the reader may speak, from the store. */
+/** Every speakable item of one book (sentences, their single sentences, words). */
+export function bookItems(src: any): { t: string; v: string }[] { const bag: Bag = new Map(); walk(bag, src); return [...bag.values()]; }
 export async function collectAll(): Promise<{ items: { t: string; v: string }[]; sources: Record<string, number> }> {
   const bag: Bag = new Map(); const src: Record<string, number> = {};
   for (const u of listUsers()) {

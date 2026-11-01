@@ -1,3 +1,5 @@
+import { after } from "next/server";
+import { prepBook } from "@/lib/reader/prep";
 // GET  -> this reader's own books (imported PDFs + books made with the in-app batch upload).
 //         GET ?budget=1 -> storage headroom {freeMB, usedMB, budgetMB} (page images live in KV when there is no Blob store).
 // POST -> save a book assembled in the browser by the batch uploader (page images were PUT to /mybooks/<id>/img/<n> first).
@@ -34,5 +36,6 @@ export async function POST(req: Request) {
   const imgStore = j.imgStore === "blob" ? "blob" : "kv";
   const imgBytes = Math.max(0, Math.min(200_000_000, Number(j.imgBytes) || 0));
   const out = await saveBook(user, { ...src, kind: "book", source: "batch-upload" }, { imgStore, imgBytes });
+  after(() => prepBook(src).catch(() => {})); // voice + dialogues now, not on first use
   return Response.json({ ok: true, ...out }, { headers: NS });
 }
