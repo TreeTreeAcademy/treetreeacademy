@@ -45,10 +45,21 @@ export const WANT_FLAG = "reader:kkw-flag";
 // ---------- content collection ----------
 const TOK = /[A-Za-z]+(?:['’][A-Za-z]+)?/g;
 const english = (s: unknown): s is string => typeof s === "string" && /[a-z]/i.test(s) && !/[\u3000-\u9fff\uff00-\uffef]/.test(s) && !/^(https?:|\/|data:)/.test(s) && s.length <= 300;
+export function sentencePieces(en: string): string[] {
+  en = String(en || "").replace(/\s*(?:\.\s*){3,}/g, "… ").replace(/\s+/g, " ").trim();
+  const toks: string[] = [];
+  for (const t of en.split(" ").filter(Boolean)) { if (!/[A-Za-z0-9]/.test(t) && toks.length) toks[toks.length - 1] += " " + t; else toks.push(t); }
+  const out: string[] = []; let cur: string[] = [];
+  for (const t of toks) { cur.push(t); if (/[.!?…]["”’)]*$/.test(t) && !/^(Mr|Mrs|Ms|Dr|St)\.$/i.test(t)) { out.push(cur.join(" ")); cur = []; } }
+  if (cur.length) out.push(cur.join(" "));
+  return out.filter((x) => x.split(" ").length >= 3);
+}
 type Bag = Map<string, { t: string; v: string }>;
 function add(bag: Bag, t: string, v = "n", words = true) {
   const n = kkNorm(t); if (!n || !english(n)) return;
   bag.set(v + "\n" + n, { t: n, v });
+  // ④句子重组 speaks one sentence of a longer text (same split as sentencePlan in phonics.js)
+  if (v === "n") for (const piece of sentencePieces(n)) if (piece !== n) bag.set("n\n" + kkNorm(piece), { t: kkNorm(piece), v: "n" });
   if (words) for (const m of n.match(TOK) || []) { const w = kkNorm(m); bag.set("n\n" + w, { t: w, v: "n" }); }
 }
 /** Walk any JSON and voice the English strings at text-like keys. */

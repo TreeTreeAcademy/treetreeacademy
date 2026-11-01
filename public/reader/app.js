@@ -60,15 +60,15 @@ const NV={tried:{},buf:{},miss:{},pend:{},off:0,tok:0,ctx:null,src:null,el:null,
     const a=this.el||(this.el=new Audio());a.src=b.u;a.preservesPitch=true;a.playbackRate=rate;a.onended=cb||null;a.play().catch(()=>fb())},
   /* fb(): speechSynthesis — a true last resort. If no natural clip exists yet (e.g. a brand-new dialogue line the box is
      voicing right now), show 「正在准备声音…」 and keep polling the saved clip for up to WAIT ms before giving up. */
-  WAIT:25000,
+  WAIT:12000,
   play(t,v,rate,fb,cb){this.unlock();if(TTS.ok)speechSynthesis.cancel();this.stop();const my=this.tok;this.t0=Date.now();
     if(!this.ok(t)){fb();return}
     rate=Math.max(.5,Math.min(1.3,rate||1));const k=this.key(t,v),t0=Date.now();let note=0;
     const live=()=>my===this.tok,go=b=>{if(note)toast('',1);this.out(b,rate,cb,fb)};
-    const poll=()=>{if(!live())return;
+    const poll=()=>{if(!live()){if(note)toast('',1);return}
       if(Date.now()-t0>this.WAIT){if(note)toast('',1);fb();return}
       if(!note){note=1;toast('🎧 正在准备声音…',this.WAIT)}
-      delete this.miss[k];this.get(t,v,true).then(b=>{if(!live())return;if(b)go(b);else setTimeout(poll,2500)})};
+      delete this.miss[k];this.get(t,v,true).then(b=>{if(!live()){if(note)toast('',1);return}if(b)go(b);else setTimeout(poll,2500)},()=>setTimeout(poll,2500))};
     this.get(t,v,!this.gen()).then(b=>{if(!live())return;if(b)go(b);else poll()})}};
 document.addEventListener('pointerdown',()=>NV.unlock(),{passive:true});
 /* stop any speech when the screen changes (route/step re-render), the tab is hidden, or the page is left */
