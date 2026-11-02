@@ -30,6 +30,9 @@ export default function HomePage() {
           <a href="/xiaoqun" className="btn btn--primary">
             进入小群姐姐栏目
           </a>
+          <a href="/hanzi" className="btn btn--ghost">
+            汉字学习·午餐秘密游戏
+          </a>
           <a href="/reader" className="btn btn--ghost">
             树儿读读乐
           </a>
