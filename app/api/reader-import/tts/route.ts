@@ -8,7 +8,7 @@ import { prepAllTalks, queueBookVoice } from "@/lib/reader/prep";
 // POST {items:[{t,v,b64}]} -> {stored}
 // POST {upgrade:{max}}     -> Gemini clips for the most-likely-next items (free quota; {quota:true} when used up)
 import { importAuthorized, importDenied } from "@/lib/reader/importauth";
-import { WANT_FLAG, collectAll, KK_VOICES, kkKey, kkNorm, kokoroClip, listWants, wantKeyOf } from "@/lib/reader/kokoro";
+import { WANT_FLAG, collectAll, KK_VOICES, kkKey, kkNorm, kokoroClip, listWants, storeKokoroClip, wantKeyOf } from "@/lib/reader/kokoro";
 import { runUpgrade } from "@/lib/reader/upgrade";
 import { kvGet, kvDel, kvExists, kvKeys, kvSet, kvStats, kvUsage } from "@/lib/reader/store";
 import { auditMyBooks, rememberUsage } from "@/lib/reader/mybooks";
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
     if (!t || !KK_VOICES[v] || b64.length < 200 || b64.length > 400_000) continue;
     const head = Buffer.from(b64.slice(0, 8), "base64");
     if (!(head[0] === 0x49 && head[1] === 0x44) && !(head[0] === 0xff && (head[1] & 0xe0) === 0xe0)) continue; // ID3 / MPEG frame
-    await kvSet(kkKey(t, v), b64); stored++; del.push(wantKeyOf(t, v));
+    await storeKokoroClip(t, v, b64); stored++; del.push(wantKeyOf(t, v));
   }
   if (del.length) await kvDel(...del);
   return J({ stored });

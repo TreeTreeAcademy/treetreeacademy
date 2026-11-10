@@ -1,12 +1,14 @@
 // Per-reader books imported from whole-book PDFs (box-side importer: scripts/import-book.ts).
-// Book data lives in the reader KV; page images in a PRIVATE Vercel Blob store when one is connected
-// (BLOB_READ_WRITE_TOKEN), otherwise in KV (smaller images; Upstash free tier = 250 MB total).
+// Book data lives in the reader KV. Page images and TTS clips go to private Cloudflare R2 when
+// READER_R2_ENABLED=1 (served only through this app). Else a private Vercel Blob store if connected,
+// else KV (Upstash free tier = 250 MB total). Never expose a public r2.dev URL.
 //   reader:mybooks:<user>                 JSON [{id,title,titleZh,pages,sentences,words,cover,createdAt,imgStore,imgBytes}]
 //   reader:mybook:<user>:<id>             source JSON (page img -> /api/reader/mybooks/<id>/img/<n>)
 //   reader:mybookimg:<user>:<id>:<n>      KV image: {"t":"image/jpeg","b":"<base64>"}  OR  {"blob":"<private blob url>","t":...}
 // Images are only ever served through the authenticated route, and only to the book's owner.
 import { kvDel, kvExists, kvGet, kvLen, kvKeys, kvMGet, kvSet, kvStats } from "@/lib/reader/store";
 import { blobConfigured, safeUser } from "@/lib/reader/blob";
+import { r2Configured, r2Get, r2Put, r2ImageKey } from "@/lib/reader/r2";
 
 export const BOOK_ID_RE = /^[a-z0-9][a-z0-9_-]{2,40}$/;
 export const USER_RE = /^[a-z0-9][a-z0-9_.-]{0,40}$/;
@@ -20,7 +22,7 @@ export const blobPath = (u: string, id: string, n: number) => `reader-books/${sa
 
 export type BookItem = {
   id: string; title: string; titleZh?: string; pages: number; sentences: number; words: number;
-  cover: string | null; createdAt: number; imgStore: "blob" | "kv" | "none"; imgBytes: number;
+  cover: string | null; createdAt: number; imgStore: "blob" | "r2" | "kv" | "none"; imgBytes: number;
 };
 
 export async function listBooks(user: string): Promise<BookItem[]> {
@@ -46,6 +48,15 @@ export async function listStoredImages(user: string, id: string, max = 40): Prom
 
 /** Store one page image; returns where it went. */
 export async function putImage(user: string, id: string, n: number, bytes: Uint8Array, type: string) {
+  if (r2Configured()) {
+    const ext = type.includes("webp") ? "webp" : type.includes("png") ? "png" : "jpg";
+    const path = r2ImageKey(safeUser(user), id, n, ext);
+    await r2Put(path, bytes, type);
+    const rec = JSON.stringify({ r2: path, t: type, size: bytes.length });
+    await kvSet(kImg(user, id, n), rec);
+    if ((await kvLen([kImg(user, id, n)]))[0] !== rec.length) throw new Error("image pointer did not save");
+    return { store: "r2" as const, size: bytes.length };
+  }
   if (blobConfigured()) {
     const { put } = await import("@vercel/blob");
     const r = await put(blobPath(user, id, n), Buffer.from(bytes), {
@@ -70,6 +81,10 @@ export async function getImage(user: string, id: string, n: number): Promise<{ b
   if (!raw) return null;
   let rec: any;
   try { rec = JSON.parse(raw); } catch { return null; }
+  if (rec.r2 && r2Configured()) {
+    const o = await r2Get(rec.r2);
+    if (o) return { bytes: o.bytes, type: rec.t || o.type || "image/jpeg" };
+  }
   if (rec.b) return { bytes: new Uint8Array(Buffer.from(rec.b, "base64")), type: rec.t || "image/jpeg" };
   if (rec.blob) {
     if (!blobConfigured()) return null;

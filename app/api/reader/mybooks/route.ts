@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   let bad: string | null;
   try { bad = checkBatchSource(src); } catch (e: any) { bad = String(e?.message || "bad source"); }
   if (bad) return Response.json({ error: "bad_source", detail: bad }, { status: 400, headers: NS });
-  const imgStore = j.imgStore === "blob" ? "blob" : "kv";
+  const imgStore = ["blob", "r2", "kv"].includes(j.imgStore) ? j.imgStore : "kv";
   const imgBytes = Math.max(0, Math.min(200_000_000, Number(j.imgBytes) || 0));
   const out = await saveBook(user, { ...src, kind: "book", source: "batch-upload" }, { imgStore, imgBytes });
   after(() => prepBook(src).catch(() => {})); // voice + dialogues now, not on first use

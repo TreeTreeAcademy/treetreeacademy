@@ -6,6 +6,7 @@
 // nothing about the books lives in git.
 import { createHash } from "node:crypto";
 import { kvGet, kvKeys, kvMGet, kvSetNx, kvSet } from "@/lib/reader/store";
+import { r2Configured, r2Get, r2Put, r2ClipKey } from "@/lib/reader/r2";
 import { listUsers } from "@/lib/reader/users";
 import { listBooks, getBook } from "@/lib/reader/mybooks";
 import { listShared, kSrc } from "@/lib/reader/shared";
@@ -22,8 +23,31 @@ const wantKey = (t: string, v: string) => "reader:kkw:" + kkKey(t, v).slice(13);
 
 export async function kokoroClip(t: string, v: string): Promise<Buffer | null> {
   if (!KK_VOICES[v]) return null;
-  const s = await kvGet(kkKey(t, v));
-  return s ? Buffer.from(s, "base64") : null;
+  const key = kkKey(t, v);
+  if (r2Configured()) {
+    const o = await r2Get(r2ClipKey("kk", key.slice("reader:kk:v1:".length)));
+    if (o) return o.bytes;
+  }
+  const s = await kvGet(key);
+  if (!s) return null;
+  if (s.startsWith("{")) {
+    try {
+      const j = JSON.parse(s);
+      if (j?.r2 && r2Configured()) { const o = await r2Get(j.r2); return o ? o.bytes : null; }
+    } catch { /* not a pointer */ }
+  }
+  return Buffer.from(s, "base64");
+}
+export async function storeKokoroClip(t: string, v: string, b64: string) {
+  const key = kkKey(t, v);
+  const bytes = Buffer.from(b64, "base64");
+  if (r2Configured()) {
+    const path = r2ClipKey("kk", key.slice("reader:kk:v1:".length));
+    await r2Put(path, bytes, "audio/mpeg");
+    await kvSet(key, JSON.stringify({ r2: path, size: bytes.length }));
+    return;
+  }
+  await kvSet(key, b64);
 }
 export async function recordWant(t: string, v: string) {
   const n = kkNorm(t);

@@ -5,6 +5,7 @@
 import { createHash } from "node:crypto";
 import { Mp3Encoder } from "@breezystack/lamejs";
 import { kvDelMatch, kvGet, kvSet } from "@/lib/reader/store";
+import { r2Configured, r2Get, r2Put, r2ClipKey } from "@/lib/reader/r2";
 
 // Only the bare text is sent to the TTS model: any instruction in the prompt can be read aloud.
 export const VOICES: Record<string, { name: string }> = { a: { name: "Puck" }, b: { name: "Leda" }, n: { name: "Kore" } };
@@ -17,8 +18,30 @@ export const normText = (t: string) => t.replace(/\s+/g, " ").trim().slice(0, 30
 export const ttsKey = (text: string, v: string) => "reader:tts:v3:" + createHash("sha1").update(v + "\n" + normText(text)).digest("hex").slice(0, 24);
 
 export async function cachedTts(text: string, v: string): Promise<Buffer | null> {
-  const s = await kvGet(ttsKey(text, v));
-  return s ? Buffer.from(s, "base64") : null;
+  const key = ttsKey(text, v);
+  if (r2Configured()) {
+    const o = await r2Get(r2ClipKey("tts", key.slice("reader:tts:v3:".length)));
+    if (o) return o.bytes;
+  }
+  const s = await kvGet(key);
+  if (!s) return null;
+  if (s.startsWith("{")) {
+    try {
+      const j = JSON.parse(s);
+      if (j?.r2 && r2Configured()) { const o = await r2Get(j.r2); return o ? o.bytes : null; }
+    } catch { /* not a pointer */ }
+  }
+  return Buffer.from(s, "base64");
+}
+export async function storeTtsClip(text: string, v: string, mp3: Buffer) {
+  const key = ttsKey(text, v);
+  if (r2Configured()) {
+    const path = r2ClipKey("tts", key.slice("reader:tts:v3:".length));
+    await r2Put(path, mp3, "audio/mpeg");
+    await kvSet(key, JSON.stringify({ r2: path, size: mp3.length }));
+    return;
+  }
+  await kvSet(key, mp3.toString("base64"));
 }
 
 function pcmFrom(b64: string, mime: string): { pcm: Int16Array; rate: number } {
@@ -91,7 +114,7 @@ export async function generateTts(text: string, v: string): Promise<{ mp3: Buffe
   const { pcm, rate, model } = await callTts(t, v);
   const mp3 = toMp3(clean(pcm, rate), rate);
   if (mp3.length < 500) throw new Error("tts short");
-  await kvSet(ttsKey(t, v), mp3.toString("base64"));
+  await storeTtsClip(t, v, mp3);
   return { mp3, model };
 }
 
@@ -121,7 +144,7 @@ export async function generateTtsBatch(items: string[], v: string): Promise<{ do
     const a = Math.max(0, bounds[i][0] * win - Math.round(rate * 0.05)), b = Math.min(pcm.length, bounds[i][1] * win + Math.round(rate * 0.08));
     const mp3 = toMp3(clean(pcm.subarray(a, b), rate), rate);
     if (mp3.length < 400) continue;
-    await kvSet(ttsKey(list[i], v), mp3.toString("base64")); done.push(list[i]);
+    await storeTtsClip(list[i], v, mp3); done.push(list[i]);
   }
   return { done, model };
 }

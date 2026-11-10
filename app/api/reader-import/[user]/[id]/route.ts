@@ -28,7 +28,7 @@ export async function PUT(req: Request, ctx: Ctx) {
   const src = j.source;
   if (!src || !Array.isArray(src.pages) || !Array.isArray(src.sentences) || !Array.isArray(src.words)) return Response.json({ error: "bad source" }, { status: 400 });
   src.id = a.id;
-  const imgStore = ["blob", "kv", "none"].includes(j.imgStore) ? j.imgStore : "none";
+  const imgStore = ["blob", "r2", "kv", "none"].includes(j.imgStore) ? j.imgStore : "none";
   const saved = await saveBook(a.user, src, { imgStore, imgBytes: Number(j.imgBytes) || 0 });
   after(() => prepBook(src).catch(() => {})); // voice + dialogues now, not on first use
   // 词根词缀 notes for the new book's words (best effort; the rest are generated lazily / by the box pass)
