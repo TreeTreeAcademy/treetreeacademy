@@ -85,6 +85,14 @@ export async function kvLen(keys: string[]): Promise<(number | null)[]> {
   const m = await local();
   return keys.map((k) => { const r = alive(m.get(k)); return r ? r.v.length : null; });
 }
+export async function kvUsage(match: string, max = 100000): Promise<{ keys: number; bytes: number }> {
+  const keys = await kvKeys(match, max);
+  let bytes = 0;
+  for (let i = 0; i < keys.length; i += 200) {
+    for (const n of await kvLen(keys.slice(i, i + 200))) bytes += n || 0;
+  }
+  return { keys: keys.length, bytes };
+}
 export async function kvSet(k: string, v: string, ttlSec?: number) {
   if (kvConfig()) { await upstash([ttlSec ? ["SET", k, v, "EX", ttlSec] : ["SET", k, v]]); return; }
   (await local()).set(k, { v, exp: ttlSec ? Date.now() + ttlSec * 1000 : undefined }); persist();

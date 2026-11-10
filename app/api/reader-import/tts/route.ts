@@ -10,7 +10,7 @@ import { prepAllTalks, queueBookVoice } from "@/lib/reader/prep";
 import { importAuthorized, importDenied } from "@/lib/reader/importauth";
 import { WANT_FLAG, collectAll, KK_VOICES, kkKey, kkNorm, kokoroClip, listWants, wantKeyOf } from "@/lib/reader/kokoro";
 import { runUpgrade } from "@/lib/reader/upgrade";
-import { kvGet, kvDel, kvExists, kvKeys, kvSet, kvStats } from "@/lib/reader/store";
+import { kvGet, kvDel, kvExists, kvKeys, kvSet, kvStats, kvUsage } from "@/lib/reader/store";
 import { auditMyBooks } from "@/lib/reader/mybooks";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -24,6 +24,13 @@ export async function GET(req: Request) {
   if (mode === "collect") { const r = await collectAll(); return J({ items: withKey(r.items), sources: r.sources }); }
   if (mode === "flag") return J({ flag: Number((await kvGet(WANT_FLAG)) || 0) });
   if (mode === "audit") return J(await auditMyBooks());
+  if (mode === "usage") {
+    const parts = ["reader:mybook:*", "reader:mybookimg:*", "reader:kk:v1:*", "reader:tts:*", "reader:kkw:*", "reader:talk:*", "reader:roots:*"];
+    const used: Record<string, { keys: number; bytes: number }> = {};
+    let bytes = 0, keys = 0;
+    for (const p of parts) { const u = await kvUsage(p); used[p] = u; bytes += u.bytes; keys += u.keys; }
+    return J({ used, bytes, keys, kv: await kvStats() });
+  }
   if (mode === "wants") return J({ items: withKey(await listWants()) });
   if (mode === "stats") return J({ clips: (await kvKeys("reader:kk:v1:*", 100000)).length, wants: (await kvKeys("reader:kkw:*", 100000)).length, kv: await kvStats() });
   if (mode === "get") {

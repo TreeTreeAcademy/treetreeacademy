@@ -51,11 +51,16 @@ export async function putImage(user: string, id: string, n: number, bytes: Uint8
     const r = await put(blobPath(user, id, n), Buffer.from(bytes), {
       access: "private", contentType: type, addRandomSuffix: false, allowOverwrite: true,
     } as any);
-    await kvSet(kImg(user, id, n), JSON.stringify({ blob: r.url, t: type, size: bytes.length }));
+    const rec = JSON.stringify({ blob: r.url, t: type, size: bytes.length });
+    await kvSet(kImg(user, id, n), rec);
+    if ((await kvLen([kImg(user, id, n)]))[0] !== rec.length) throw new Error("image pointer did not save");
     return { store: "blob" as const, size: bytes.length };
   }
   if (bytes.length > MAX_KV_IMG_BYTES) throw new Error("image too large for KV");
-  await kvSet(kImg(user, id, n), JSON.stringify({ t: type, b: Buffer.from(bytes).toString("base64") }));
+  const rec = JSON.stringify({ t: type, b: Buffer.from(bytes).toString("base64") });
+  await kvSet(kImg(user, id, n), rec);
+  const lens = await kvLen([kImg(user, id, n)]);
+  if (lens[0] !== rec.length) throw new Error("image did not save");
   return { store: "kv" as const, size: bytes.length };
 }
 
