@@ -147,8 +147,8 @@ export const BATCH_MAX_PAGES = 40;
 export const kvBudgetBytes = () => Number(process.env.READER_KV_BUDGET_MB || 245) * 1048576;
 const USED_KEY = "reader:kv:used-bytes";
 export async function rememberUsage(bytes: number) {
-  if (bytes <= 0) return;
-  try { const cur = Number((await kvGet(USED_KEY)) || 0); await kvSet(USED_KEY, String(Math.max(cur, bytes))); } catch { /* best effort */ }
+  if (bytes < 0) return;
+  try { await kvSet(USED_KEY, String(bytes)); } catch { /* best effort */ }
 }
 export async function addUsage(delta: number) {
   if (!delta) return;

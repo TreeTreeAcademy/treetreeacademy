@@ -51,13 +51,17 @@ export async function POST(req: Request) {
   }
   if (Array.isArray(body.set)) {
     let n = 0;
-    for (const it of body.set.slice(0, 40)) {
-      const k = it?.k, v = it?.v;
-      if (!okKey(k) || typeof v !== "string" || v.length > 2_000_000) continue;
-      await kvSet(k, v);
-      const lens = await kvLen([k]);
-      if (lens[0] !== v.length) return J({ error: "set did not stick", k, n }, 500);
-      n++;
+    try {
+      for (const it of body.set.slice(0, 40)) {
+        const k = it?.k, v = it?.v;
+        if (!okKey(k) || typeof v !== "string" || v.length > 2_000_000) continue;
+        await kvSet(k, v);
+        const lens = await kvLen([k]);
+        if (lens[0] !== v.length) return J({ error: "set did not stick", k, n }, 500);
+        n++;
+      }
+    } catch (e: any) {
+      return J({ error: String(e?.message || e).slice(0, 200), set: n }, 500);
     }
     return J({ set: n });
   }

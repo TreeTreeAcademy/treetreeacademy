@@ -2,8 +2,9 @@
 // so nothing waits for first use.
 import { bookItems, recordWant } from "./kokoro";
 import { cachedTalk, generateTalk, talkId } from "./talk";
-import { kvGet, kvKeys, kvMGet } from "./store";
 import { ensureRoots } from "./roots";
+import { listUsers } from "./users";
+import { getBook, listBooks } from "./mybooks";
 
 export async function queueBookVoice(src: any) {
   const items = bookItems(src);
@@ -31,11 +32,15 @@ export async function prepBook(src: any) {
   const roots = words.length ? await ensureRoots(words, 20000, 2).catch(() => null) : null;
   return { queued, talks, roots: roots ? { calls: roots.calls, missing: roots.missing } : null };
 }
-/** box loop: finish dialogues for all uploaded books */
+/** box loop: pre-build dialogues only for each user's newest book (older talk clips were evicted to free KV). */
 export async function prepAllTalks(maxCalls = 4) {
-  const ks = await kvKeys("reader:mybook:*", 5000);
   const words: { w: string; zh: string }[] = [];
-  for (let i = 0; i < ks.length; i += 50) for (const s of await kvMGet(ks.slice(i, i + 50))) { try { s && words.push(...bookWords(JSON.parse(s))); } catch { /* skip */ } }
-  void kvGet;
+  for (const u of listUsers()) {
+    const items = await listBooks(u);
+    if (!items.length) continue;
+    const newest = [...items].sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0))[0];
+    const raw = await getBook(u, newest.id);
+    if (raw) try { words.push(...bookWords(JSON.parse(raw))); } catch { /* skip */ }
+  }
   return prepTalks(words, 20000, Math.min(maxCalls, 2));
 }

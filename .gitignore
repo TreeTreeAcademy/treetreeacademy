@@ -39,3 +39,6 @@ next-env.d.ts
 /public/reader/books/
 /reader-assets/
 /.reader-data/
+
+# local script caches
+**/__pycache__/
