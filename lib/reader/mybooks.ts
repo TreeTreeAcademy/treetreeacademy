@@ -61,6 +61,7 @@ export async function putImage(user: string, id: string, n: number, bytes: Uint8
   await kvSet(kImg(user, id, n), rec);
   const lens = await kvLen([kImg(user, id, n)]);
   if (lens[0] !== rec.length) throw new Error("image did not save");
+  await addUsage(rec.length);
   return { store: "kv" as const, size: bytes.length };
 }
 
@@ -143,11 +144,25 @@ export async function deleteBook(user: string, id: string) {
 export const BATCH_ID_RE = /^up-[a-z0-9]{6,30}$/;
 export const BATCH_MAX_PAGES = 40;
 /** KV is the only image store when no Blob store is connected: stop well before the Upstash free-tier limit. */
-export const kvBudgetBytes = () => Number(process.env.READER_KV_BUDGET_MB || 150) * 1048576;
+export const kvBudgetBytes = () => Number(process.env.READER_KV_BUDGET_MB || 245) * 1048576;
+const USED_KEY = "reader:kv:used-bytes";
+export async function rememberUsage(bytes: number) {
+  if (bytes <= 0) return;
+  try { const cur = Number((await kvGet(USED_KEY)) || 0); await kvSet(USED_KEY, String(Math.max(cur, bytes))); } catch { /* best effort */ }
+}
+export async function addUsage(delta: number) {
+  if (!delta) return;
+  try { const cur = Number((await kvGet(USED_KEY)) || 0); await kvSet(USED_KEY, String(Math.max(0, cur + delta))); } catch { /* best effort */ }
+}
 export async function kvHeadroom() {
   const st = await kvStats();
   const budget = kvBudgetBytes();
-  return { usedBytes: st.usedBytes, budgetBytes: budget, freeBytes: st.usedBytes == null ? null : Math.max(0, budget - st.usedBytes) };
+  let used = st.usedBytes;
+  try {
+    const cached = Number((await kvGet(USED_KEY)) || 0);
+    if (cached > 0) used = Math.max(used || 0, cached);
+  } catch { /* keep INFO */ }
+  return { usedBytes: used, budgetBytes: budget, freeBytes: used == null ? null : Math.max(0, budget - used) };
 }
 export const isJpeg = (b: Uint8Array) => b.length > 4 && b[0] === 0xff && b[1] === 0xd8 && b[2] === 0xff;
 

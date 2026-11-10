@@ -11,7 +11,7 @@ import { importAuthorized, importDenied } from "@/lib/reader/importauth";
 import { WANT_FLAG, collectAll, KK_VOICES, kkKey, kkNorm, kokoroClip, listWants, wantKeyOf } from "@/lib/reader/kokoro";
 import { runUpgrade } from "@/lib/reader/upgrade";
 import { kvGet, kvDel, kvExists, kvKeys, kvSet, kvStats, kvUsage } from "@/lib/reader/store";
-import { auditMyBooks } from "@/lib/reader/mybooks";
+import { auditMyBooks, rememberUsage } from "@/lib/reader/mybooks";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -29,6 +29,7 @@ export async function GET(req: Request) {
     const used: Record<string, { keys: number; bytes: number }> = {};
     let bytes = 0, keys = 0;
     for (const p of parts) { const u = await kvUsage(p); used[p] = u; bytes += u.bytes; keys += u.keys; }
+    await rememberUsage(bytes);
     return J({ used, bytes, keys, kv: await kvStats() });
   }
   if (mode === "wants") return J({ items: withKey(await listWants()) });
