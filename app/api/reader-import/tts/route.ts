@@ -11,6 +11,7 @@ import { importAuthorized, importDenied } from "@/lib/reader/importauth";
 import { WANT_FLAG, collectAll, KK_VOICES, kkKey, kkNorm, kokoroClip, listWants, wantKeyOf } from "@/lib/reader/kokoro";
 import { runUpgrade } from "@/lib/reader/upgrade";
 import { kvGet, kvDel, kvExists, kvKeys, kvSet, kvStats } from "@/lib/reader/store";
+import { auditMyBooks } from "@/lib/reader/mybooks";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -22,6 +23,7 @@ export async function GET(req: Request) {
   const u = new URL(req.url), mode = u.searchParams.get("mode");
   if (mode === "collect") { const r = await collectAll(); return J({ items: withKey(r.items), sources: r.sources }); }
   if (mode === "flag") return J({ flag: Number((await kvGet(WANT_FLAG)) || 0) });
+  if (mode === "audit") return J(await auditMyBooks());
   if (mode === "wants") return J({ items: withKey(await listWants()) });
   if (mode === "stats") return J({ clips: (await kvKeys("reader:kk:v1:*", 100000)).length, wants: (await kvKeys("reader:kkw:*", 100000)).length, kv: await kvStats() });
   if (mode === "get") {

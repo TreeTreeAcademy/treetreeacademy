@@ -5,7 +5,7 @@ import { prepBook } from "@/lib/reader/prep";
 // POST -> save a book assembled in the browser by the batch uploader (page images were PUT to /mybooks/<id>/img/<n> first).
 //         Private to the logged-in reader; never published to other families.
 import { requireUser, unauthorized } from "@/lib/reader/session";
-import { BATCH_ID_RE, checkBatchSource, kvHeadroom, listBooks, saveBook } from "@/lib/reader/mybooks";
+import { BATCH_ID_RE, checkBatchSource, kvHeadroom, listLiveBooks, saveBook } from "@/lib/reader/mybooks";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 const NS = { "Cache-Control": "no-store" };
@@ -18,7 +18,7 @@ export async function GET(req: Request) {
     const h = await kvHeadroom();
     return Response.json({ usedMB: MB(h.usedBytes), budgetMB: MB(h.budgetBytes), freeMB: MB(h.freeBytes) }, { headers: NS });
   }
-  return Response.json(await listBooks(user), { headers: NS });
+  return Response.json(await listLiveBooks(user), { headers: NS });
 }
 
 export async function POST(req: Request) {

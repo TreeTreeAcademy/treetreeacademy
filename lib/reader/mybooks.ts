@@ -5,7 +5,7 @@
 //   reader:mybook:<user>:<id>             source JSON (page img -> /api/reader/mybooks/<id>/img/<n>)
 //   reader:mybookimg:<user>:<id>:<n>      KV image: {"t":"image/jpeg","b":"<base64>"}  OR  {"blob":"<private blob url>","t":...}
 // Images are only ever served through the authenticated route, and only to the book's owner.
-import { kvDel, kvExists, kvGet, kvMGet, kvSet, kvStats } from "@/lib/reader/store";
+import { kvDel, kvExists, kvGet, kvLen, kvKeys, kvMGet, kvSet, kvStats } from "@/lib/reader/store";
 import { blobConfigured, safeUser } from "@/lib/reader/blob";
 
 export const BOOK_ID_RE = /^[a-z0-9][a-z0-9_-]{2,40}$/;
@@ -29,6 +29,20 @@ export async function listBooks(user: string): Promise<BookItem[]> {
 export async function getBook(user: string, id: string): Promise<string | null> {
   return kvGet(kBook(user, id));
 }
+/** Books in the index whose body is actually present (never list a dangling card). */
+export async function listLiveBooks(user: string): Promise<BookItem[]> {
+  const items = await listBooks(user);
+  if (!items.length) return items;
+  const ok = await kvExists(items.map((x) => kBook(user, x.id)));
+  return items.filter((_, i) => ok[i]);
+}
+/** Page numbers that have an image stored, in order. */
+export async function listStoredImages(user: string, id: string, max = 40): Promise<number[]> {
+  const keys = Array.from({ length: max }, (_, i) => kImg(user, id, i + 1));
+  const ex = await kvExists(keys);
+  return ex.map((e, i) => (e ? i + 1 : 0)).filter((n) => n);
+}
+
 
 /** Store one page image; returns where it went. */
 export async function putImage(user: string, id: string, n: number, bytes: Uint8Array, type: string) {
@@ -74,6 +88,8 @@ export async function saveBook(user: string, src: any, extra: { imgStore: BookIt
   };
   const body = JSON.stringify(clean);
   await kvSet(kBook(user, id), body);
+  const lens = await kvLen([kBook(user, id)]);
+  if (lens[0] !== body.length) throw new Error("book body did not save");
   const prevItems = await listBooks(user);
   // re-import with fewer pages: drop image keys (and blobs) beyond the new last page
   const prev = prevItems.find((x) => x.id === id);
@@ -144,4 +160,68 @@ export function checkBatchSource(src: any): string | null {
   if (!pages.every((p: any) => p.s.every((i: any) => Number.isInteger(i) && i >= 0 && i < sentences.length))) return "bad page sentences";
   if (!words.every((w: any) => w && typeof w.w === "string" && w.w.length < 60 && Array.isArray(w.pages))) return "bad words";
   return null;
+}
+
+/** Metadata-only inventory of uploaded books and leftover page images. Never includes book text. */
+export async function auditMyBooks() {
+  const idxKeys = await kvKeys("reader:mybooks:*", 200);
+  const bookKeys = await kvKeys("reader:mybook:*", 20000);
+  const imgKeys = await kvKeys("reader:mybookimg:*", 50000);
+  const users = idxKeys.map((k) => k.slice("reader:mybooks:".length));
+  const indexes: Record<string, { id: string; pages: number; sentences: number; words: number; createdAt: number; bodyBytes: number | null; hasBody: boolean; images: number[] }[]> = {};
+  const listed = new Set<string>();
+  for (const u of users) {
+    const items = await listBooks(u);
+    const ids = items.map((x) => x.id);
+    const bodies = ids.map((id) => kBook(u, id));
+    const has = bodies.length ? await kvExists(bodies) : [];
+    const lens = bodies.length ? await kvLen(bodies) : [];
+    const rows = [];
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      listed.add(u + ":" + it.id);
+      rows.push({
+        id: it.id, pages: it.pages, sentences: it.sentences, words: it.words, createdAt: it.createdAt,
+        bodyBytes: lens[i], hasBody: !!has[i], images: await listStoredImages(u, it.id, Math.max(40, (it.pages || 0) + 5)),
+      });
+    }
+    indexes[u] = rows;
+  }
+  const parseBookKey = (k: string) => {
+    const rest = k.slice("reader:mybook:".length);
+    const i = rest.indexOf(":");
+    return i < 0 ? null : { user: rest.slice(0, i), id: rest.slice(i + 1) };
+  };
+  const parseImgKey = (k: string) => {
+    const rest = k.slice("reader:mybookimg:".length);
+    const m = rest.match(/^([^:]+):(.+):(\d+)$/);
+    return m ? { user: m[1], id: m[2], n: Number(m[3]) } : null;
+  };
+  const bodyOrphans: { user: string; id: string; bytes: number | null }[] = [];
+  const bookLens = bookKeys.length ? await kvLen(bookKeys) : [];
+  for (let i = 0; i < bookKeys.length; i++) {
+    const p = parseBookKey(bookKeys[i]);
+    if (!p) continue;
+    if (!listed.has(p.user + ":" + p.id)) bodyOrphans.push({ user: p.user, id: p.id, bytes: bookLens[i] });
+  }
+  const imgBy: Record<string, number[]> = {};
+  for (const k of imgKeys) {
+    const p = parseImgKey(k);
+    if (!p) continue;
+    const id = p.user + ":" + p.id;
+    (imgBy[id] ||= []).push(p.n);
+  }
+  const imageOrphans: { user: string; id: string; images: number[] }[] = [];
+  for (const [uid, nums] of Object.entries(imgBy)) {
+    const [user, id] = uid.split(":");
+    if (!listed.has(uid) && !bodyOrphans.some((x) => x.user === user && x.id === id)) {
+      imageOrphans.push({ user, id, images: nums.sort((a, b) => a - b) });
+    }
+  }
+  // also attach images to body orphans
+  const bodyOrphans2 = bodyOrphans.map((x) => ({ ...x, images: (imgBy[x.user + ":" + x.id] || []).sort((a, b) => a - b) }));
+  return {
+    users, bookBodies: bookKeys.length, imageKeys: imgKeys.length,
+    indexes, bodyOrphans: bodyOrphans2, imageOrphans,
+  };
 }

@@ -3,6 +3,7 @@
 import { bookItems, recordWant } from "./kokoro";
 import { cachedTalk, generateTalk, talkId } from "./talk";
 import { kvGet, kvKeys, kvMGet } from "./store";
+import { ensureRoots } from "./roots";
 
 export async function queueBookVoice(src: any) {
   const items = bookItems(src);
@@ -26,7 +27,9 @@ export async function prepTalks(words: { w: string; zh: string }[], budgetMs = 4
 export async function prepBook(src: any) {
   const queued = await queueBookVoice(src).catch(() => 0);
   const talks = await prepTalks(bookWords(src), 20000, 3).catch(() => null);
-  return { queued, talks };
+  const words = bookWords(src).map((x) => x.w);
+  const roots = words.length ? await ensureRoots(words, 20000, 2).catch(() => null) : null;
+  return { queued, talks, roots: roots ? { calls: roots.calls, missing: roots.missing } : null };
 }
 /** box loop: finish dialogues for all uploaded books */
 export async function prepAllTalks(maxCalls = 4) {

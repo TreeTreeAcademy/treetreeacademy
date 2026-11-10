@@ -1,6 +1,6 @@
 // GET -> one of this reader's imported books (source JSON); DELETE -> remove it (book data + page images).
 import { requireUser, unauthorized } from "@/lib/reader/session";
-import { BOOK_ID_RE, deleteBook, getBook } from "@/lib/reader/mybooks";
+import { BOOK_ID_RE, deleteBook, getBook, listStoredImages } from "@/lib/reader/mybooks";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 type Ctx = { params: Promise<{ id: string }> };
@@ -11,7 +11,10 @@ export async function GET(req: Request, ctx: Ctx) {
   const { id } = await ctx.params;
   if (!BOOK_ID_RE.test(id)) return new Response("bad id", { status: 400 });
   const body = await getBook(user, id);
-  if (!body) return Response.json({ error: "not found" }, { status: 404 });
+  if (!body) {
+    const images = await listStoredImages(user, id);
+    return Response.json({ error: "not found", images }, { status: 404, headers: { "Cache-Control": "no-store" } });
+  }
   return new Response(body, { headers: { "Content-Type": "application/json", "Cache-Control": "private, no-cache" } });
 }
 

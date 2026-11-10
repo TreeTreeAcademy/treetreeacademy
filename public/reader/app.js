@@ -103,7 +103,7 @@ async function sharedList(){if(SHARED)return SHARED;if(!CFG.sharedEndpoint)retur
 async function catalog(){if(CATALOG)return CATALOG;try{const r=await fetch(CFG.booksBase+'catalog.json',{credentials:'same-origin'});if(r.status===401)return goLogin();CATALOG=r.ok?await r.json():[]}catch(e){CATALOG=[]}return CATALOG}
 async function getSource(id){if(BOOKS[id])return BOOKS[id];let b;
   if(id.startsWith('u:')){b=await IDB.get(id.slice(2));if(!b)return null;b.uid='u:'+b.id}
-  else if(id.startsWith('m:')){const r=await fetch(CFG.mybooksEndpoint+'/'+encodeURIComponent(id.slice(2)),{credentials:'same-origin'});if(r.status===401)return goLogin();if(!r.ok)return null;b=await r.json();b.uid=id}
+  else if(id.startsWith('m:')){const r=await fetch(CFG.mybooksEndpoint+'/'+encodeURIComponent(id.slice(2)),{credentials:'same-origin'});if(r.status===401)return goLogin();if(!r.ok){const j=await r.json().catch(()=>({}));const e=new Error('missing');e.missing={kind:'m',id:id.slice(2),images:Array.isArray(j.images)?j.images:[]};throw e}b=await r.json();b.uid=id}
   else if(id.startsWith('g:')){const r=await fetch(CFG.sharedEndpoint+'/'+encodeURIComponent(id.slice(2)),{credentials:'same-origin'});if(r.status===401)return goLogin();if(!r.ok)return null;b=await r.json();b.uid=id}
   else{const r=await fetch(CFG.booksBase+id+'/book.json',{credentials:'same-origin'});if(r.status===401)return goLogin();if(!r.ok)return null;b=await r.json();b.uid=id;
     b.pages.forEach(p=>{if(p.img&&!/^(data:|https?:|\/)/.test(p.img))p.img=CFG.booksBase+id+'/'+p.img})}
@@ -167,8 +167,13 @@ async function viewHome(){nav('src');const cat=await catalog();if(cat===null)ret
 
 /* ================= SOURCE: full original text ================= */
 const PREF={img:localStorage.getItem('tt2.img')!=='0',zh:localStorage.getItem('tt3.zh')!=='0'}; // Chinese under each sentence: on by default
+function missingSource(err){
+  const imgs=err&&Array.isArray(err.images)?err.images:[];
+  const imgNote=imgs.length?`服务器上还留着第 ${imgs.join('、')} 页的图片，但书的文字没有保存成功。请先打开「上传」页：如果有未完成的草稿，点「继续」或「重试保存」。如果没有草稿，需要重新选照片再传一次（已在的页面图片不用担心会重复占很多空间）。`:'这本书在服务器上没有找到。请打开「上传」页看看有没有未完成的草稿（点「继续」或「重试保存」）；如果没有草稿，需要重新上传。';
+  app.innerHTML=`<div class="empty"><div class="e">🔍</div><p style="margin:8px 0 0;font-weight:700">找不到这个学习来源</p><p class="muted" style="max-width:36em;margin:10px auto 16px;text-align:left">${imgNote}</p><div class="actions" style="justify-content:center"><a class="btn" href="#/upload">去上传页恢复</a><a class="btn sec" href="#/">返回首页</a></div></div>`}
 async function viewSource(id,pg){if(cleanup){cleanup();cleanup=null}nav('src');app.innerHTML='<p class="center"><span class="spin"></span> 正在打开原文…</p>';
-  const b=await getSource(id);if(!b){app.innerHTML='<div class="empty"><div class="e">🔍</div>找不到这个学习来源 <a href="#/">返回</a></div>';return}
+  let b;try{b=await getSource(id)}catch(e){if(e&&e.missing){missingSource(e.missing);return}throw e}
+  if(!b){missingSource();return}
   const P=b.pages.length;pg=Math.min(Math.max(1,pg),P);const page=b.pages[pg-1];
   const collectedPages=new Set(Object.values(S.words).filter(x=>x.src===b.uid).map(x=>x.p));
   const sents=page.s.map(i=>b.sentences[i]);

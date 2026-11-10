@@ -216,6 +216,8 @@ async function finish(skipFailed){
     const res=await fetch(CFG.mybooksEndpoint,{method:'POST',headers:{'content-type':'application/json'},body,credentials:'same-origin'});
     if(!res.ok){const j=await res.json().catch(()=>({}));throw new Error(j.detail||j.error||('HTTP '+res.status))}
     const j=await res.json();
+    const check=await fetch(CFG.mybooksEndpoint+'/'+encodeURIComponent(r.id),{credentials:'same-origin'});
+    if(!check.ok)throw new Error('书已经提交，但打开时读不到。请点「重试保存」，不要离开这个页面');
     r.result={id:r.id,title,pages:out.pages.length,sentences:out.sentences.length,words:out.words.length,noText:parts.filter(x=>!x.sentences.length).length,cover:out.pages[0]&&out.pages[0].img,skipped:r.pages.length-pages.length,images:j.images};
     r.status='done';r.msg='';T.resetMine();await D.clear().catch(()=>{});
   }catch(e){r.status='partial';r.msg='保存失败：'+(e.message||e)+'。已完成的页面还在，点「重试」再保存一次。';r.saveFailed=true}

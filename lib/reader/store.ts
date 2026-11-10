@@ -15,7 +15,9 @@ async function upstash(cmds: Cmd[]): Promise<any[]> {
   });
   if (!r.ok) throw new Error(`kv ${r.status}`);
   const j = (await r.json()) as { result?: any; error?: string }[];
-  return j.map((x) => (x.error ? null : x.result));
+  const fail = j.find((x) => x.error);
+  if (fail) throw new Error("kv " + fail.error);
+  return j.map((x) => x.result);
 }
 
 // ---- local fallback ----
@@ -75,6 +77,13 @@ export async function kvExists(keys: string[]): Promise<boolean[]> {
   if (kvConfig()) return (await upstash(keys.map((k) => ["EXISTS", k]))).map((x) => Number(x) > 0);
   const m = await local();
   return keys.map((k) => !!alive(m.get(k)));
+}
+/** Value length in bytes (0 or null if missing). Does not fetch the value. */
+export async function kvLen(keys: string[]): Promise<(number | null)[]> {
+  if (!keys.length) return [];
+  if (kvConfig()) return (await upstash(keys.map((k) => ["STRLEN", k]))).map((x) => (x == null ? null : Number(x)));
+  const m = await local();
+  return keys.map((k) => { const r = alive(m.get(k)); return r ? r.v.length : null; });
 }
 export async function kvSet(k: string, v: string, ttlSec?: number) {
   if (kvConfig()) { await upstash([ttlSec ? ["SET", k, v, "EX", ttlSec] : ["SET", k, v]]); return; }
