@@ -29,11 +29,19 @@ export async function PUT(req: Request, ctx: Ctx) {
   if (!src || !Array.isArray(src.pages) || !Array.isArray(src.sentences) || !Array.isArray(src.words)) return Response.json({ error: "bad source" }, { status: 400 });
   src.id = a.id;
   const imgStore = ["blob", "r2", "kv", "none"].includes(j.imgStore) ? j.imgStore : "none";
-  const saved = await saveBook(a.user, src, { imgStore, imgBytes: Number(j.imgBytes) || 0 });
-  after(() => prepBook(src).catch(() => {})); // voice + dialogues now, not on first use
-  // 词根词缀 notes for the new book's words (best effort; the rest are generated lazily / by the box pass)
-  const roots = await ensureRoots(src.words.map((w: any) => String(w?.w || "")), 20000, 2).catch(() => null);
-  return Response.json({ ok: true, ...saved, roots: roots ? { calls: roots.calls, missing: roots.missing } : null });
+  let saved: Awaited<ReturnType<typeof saveBook>>;
+  try {
+    saved = await saveBook(a.user, src, { imgStore, imgBytes: Number(j.imgBytes) || 0 });
+  } catch (e: any) {
+    return Response.json({ error: "save_failed", detail: String(e?.message || e).slice(0, 200) }, { status: 500 });
+  }
+  try {
+    after(() => {
+      prepBook(src).catch(() => {});
+      ensureRoots(src.words.map((w: any) => String(w?.w || "")), 20000, 2).catch(() => {});
+    });
+  } catch { /* never fail the save */ }
+  return Response.json({ ok: true, ...saved });
 }
 
 export async function DELETE(req: Request, ctx: Ctx) {

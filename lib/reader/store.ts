@@ -78,12 +78,14 @@ export async function kvExists(keys: string[]): Promise<boolean[]> {
   const m = await local();
   return keys.map((k) => !!alive(m.get(k)));
 }
+/** UTF-8 byte length of a string we are about to SET (must match Redis STRLEN). */
+export const kvStringBytes = (v: string) => Buffer.byteLength(v, "utf8");
 /** Value length in bytes (0 or null if missing). Does not fetch the value. */
 export async function kvLen(keys: string[]): Promise<(number | null)[]> {
   if (!keys.length) return [];
   if (kvConfig()) return (await upstash(keys.map((k) => ["STRLEN", k]))).map((x) => (x == null ? null : Number(x)));
   const m = await local();
-  return keys.map((k) => { const r = alive(m.get(k)); return r ? r.v.length : null; });
+  return keys.map((k) => { const r = alive(m.get(k)); return r ? kvStringBytes(r.v) : null; });
 }
 export async function kvUsage(match: string, max = 100000): Promise<{ keys: number; bytes: number }> {
   const keys = await kvKeys(match, max);

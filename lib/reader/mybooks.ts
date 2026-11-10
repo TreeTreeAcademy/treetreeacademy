@@ -6,7 +6,7 @@
 //   reader:mybook:<user>:<id>             source JSON (page img -> /api/reader/mybooks/<id>/img/<n>)
 //   reader:mybookimg:<user>:<id>:<n>      KV image: {"t":"image/jpeg","b":"<base64>"}  OR  {"blob":"<private blob url>","t":...}
 // Images are only ever served through the authenticated route, and only to the book's owner.
-import { kvDel, kvExists, kvGet, kvLen, kvKeys, kvMGet, kvSet, kvStats } from "@/lib/reader/store";
+import { kvDel, kvExists, kvGet, kvLen, kvKeys, kvMGet, kvSet, kvStats, kvStringBytes } from "@/lib/reader/store";
 import { blobConfigured, safeUser } from "@/lib/reader/blob";
 import { r2Configured, r2Get, r2Put, r2ImageKey } from "@/lib/reader/r2";
 
@@ -54,7 +54,7 @@ export async function putImage(user: string, id: string, n: number, bytes: Uint8
     await r2Put(path, bytes, type);
     const rec = JSON.stringify({ r2: path, t: type, size: bytes.length });
     await kvSet(kImg(user, id, n), rec);
-    if ((await kvLen([kImg(user, id, n)]))[0] !== rec.length) throw new Error("image pointer did not save");
+    if ((await kvLen([kImg(user, id, n)]))[0] !== kvStringBytes(rec)) throw new Error("image pointer did not save");
     return { store: "r2" as const, size: bytes.length };
   }
   if (blobConfigured()) {
@@ -64,14 +64,14 @@ export async function putImage(user: string, id: string, n: number, bytes: Uint8
     } as any);
     const rec = JSON.stringify({ blob: r.url, t: type, size: bytes.length });
     await kvSet(kImg(user, id, n), rec);
-    if ((await kvLen([kImg(user, id, n)]))[0] !== rec.length) throw new Error("image pointer did not save");
+    if ((await kvLen([kImg(user, id, n)]))[0] !== kvStringBytes(rec)) throw new Error("image pointer did not save");
     return { store: "blob" as const, size: bytes.length };
   }
   if (bytes.length > MAX_KV_IMG_BYTES) throw new Error("image too large for KV");
   const rec = JSON.stringify({ t: type, b: Buffer.from(bytes).toString("base64") });
   await kvSet(kImg(user, id, n), rec);
   const lens = await kvLen([kImg(user, id, n)]);
-  if (lens[0] !== rec.length) throw new Error("image did not save");
+  if (lens[0] !== kvStringBytes(rec)) throw new Error("image did not save");
   await addUsage(rec.length);
   return { store: "kv" as const, size: bytes.length };
 }
@@ -110,7 +110,7 @@ export async function saveBook(user: string, src: any, extra: { imgStore: BookIt
   const body = JSON.stringify(clean);
   await kvSet(kBook(user, id), body);
   const lens = await kvLen([kBook(user, id)]);
-  if (lens[0] !== body.length) throw new Error("book body did not save");
+  if (lens[0] !== kvStringBytes(body)) throw new Error("book body did not save");
   const prevItems = await listBooks(user);
   // re-import with fewer pages: drop image keys (and blobs) beyond the new last page
   const prev = prevItems.find((x) => x.id === id);

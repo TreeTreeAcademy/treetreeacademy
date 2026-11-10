@@ -1,7 +1,7 @@
 // Box-side KV backup / compact / migrate. Bearer READER_IMPORT_TOKEN.
 // Only reader:* keys. Values are never logged.
 import { importAuthorized, importDenied } from "@/lib/reader/importauth";
-import { kvDel, kvExists, kvGet, kvKeys, kvLen, kvMGet, kvSet } from "@/lib/reader/store";
+import { kvDel, kvExists, kvGet, kvKeys, kvLen, kvMGet, kvSet, kvStringBytes } from "@/lib/reader/store";
 
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -57,7 +57,7 @@ export async function POST(req: Request) {
         if (!okKey(k) || typeof v !== "string" || v.length > 2_000_000) continue;
         await kvSet(k, v);
         const lens = await kvLen([k]);
-        if (lens[0] !== v.length) return J({ error: "set did not stick", k, n }, 500);
+        if (lens[0] !== kvStringBytes(v)) return J({ error: "set did not stick", k, n }, 500);
         n++;
       }
     } catch (e: any) {
