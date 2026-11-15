@@ -13,7 +13,7 @@ if [ "${1:-}" = "--daemon" ]; then
   mkdir -p /workspace/logs; setsid nohup "$0" >>/workspace/logs/kokoro-tts.log 2>&1 < /dev/null & echo $! >"$PIDF"; exit 0
 fi
 echo $$ >"$PIDF"
-n=0
+n=1  # start at 1 so a restart does not immediately run --full --verify
 backoff=30
 while true; do
   if [ $((n % 720)) -eq 0 ]; then a="--full --verify"
