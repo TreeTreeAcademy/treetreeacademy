@@ -8,9 +8,9 @@ import { prepAllTalks, queueBookVoice } from "@/lib/reader/prep";
 // POST {items:[{t,v,b64}]} -> {stored}
 // POST {upgrade:{max}}     -> Gemini clips for the most-likely-next items (free quota; {quota:true} when used up)
 import { importAuthorized, importDenied } from "@/lib/reader/importauth";
-import { WANT_FLAG, collectAll, KK_VOICES, kkKey, kkNorm, kokoroClip, listWants, storeKokoroClip, wantKeyOf } from "@/lib/reader/kokoro";
+import { WANT_FLAG, collectAll, dropWants, KK_VOICES, kkKey, kkNorm, kokoroClip, listWants, storeKokoroClip, wantKeyOf } from "@/lib/reader/kokoro";
 import { runUpgrade } from "@/lib/reader/upgrade";
-import { kvGet, kvDel, kvExists, kvKeys, kvSet, kvStats, kvUsage } from "@/lib/reader/store";
+import { kvGet, kvExists, kvKeys, kvStats, kvUsage } from "@/lib/reader/store";
 import { auditMyBooks, rememberUsage } from "@/lib/reader/mybooks";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
@@ -18,33 +18,42 @@ export const maxDuration = 60;
 const J = (x: any, s = 200) => Response.json(x, { status: s, headers: { "Cache-Control": "no-store" } });
 const withKey = (xs: { t: string; v: string }[]) => xs.map((x) => ({ ...x, k: kkKey(x.t, x.v) }));
 
+function kvFail(e: any) {
+  const detail = String(e?.message || e).slice(0, 200);
+  const quota = /max requests limit exceeded|429|402/i.test(detail);
+  return J({ error: quota ? "kv_quota" : "kv", detail }, 503);
+}
+
 export async function GET(req: Request) {
   if (!importAuthorized(req)) return importDenied();
   const u = new URL(req.url), mode = u.searchParams.get("mode");
-  if (mode === "collect") { const r = await collectAll(); return J({ items: withKey(r.items), sources: r.sources }); }
-  if (mode === "flag") return J({ flag: Number((await kvGet(WANT_FLAG)) || 0) });
-  if (mode === "audit") return J(await auditMyBooks());
-  if (mode === "usage") {
-    const parts = ["reader:mybook:*", "reader:mybookimg:*", "reader:kk:v1:*", "reader:tts:*", "reader:kkw:*", "reader:talk:*", "reader:roots:*"];
-    const used: Record<string, { keys: number; bytes: number }> = {};
-    let bytes = 0, keys = 0;
-    for (const p of parts) { const u = await kvUsage(p); used[p] = u; bytes += u.bytes; keys += u.keys; }
-    await rememberUsage(bytes);
-    return J({ used, bytes, keys, kv: await kvStats() });
-  }
-  if (mode === "wants") return J({ items: withKey(await listWants()) });
-  if (mode === "stats") return J({ clips: (await kvKeys("reader:kk:v1:*", 100000)).length, wants: (await kvKeys("reader:kkw:*", 100000)).length, kv: await kvStats() });
-  if (mode === "get") {
-    const b = await kokoroClip(u.searchParams.get("t") || "", u.searchParams.get("v") || "n");
-    return b ? new Response(new Uint8Array(b), { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" } }) : J({ error: "missing" }, 404);
-  }
-  return J({ error: "mode?" }, 400);
+  try {
+    if (mode === "collect") { const r = await collectAll(); return J({ items: withKey(r.items), sources: r.sources }); }
+    if (mode === "flag") return J({ flag: Number((await kvGet(WANT_FLAG)) || 0) });
+    if (mode === "audit") return J(await auditMyBooks());
+    if (mode === "usage") {
+      const parts = ["reader:mybook:*", "reader:mybookimg:*", "reader:kk:v1:*", "reader:tts:*", "reader:kkw:*", "reader:talk:*", "reader:roots:*"];
+      const used: Record<string, { keys: number; bytes: number }> = {};
+      let bytes = 0, keys = 0;
+      for (const p of parts) { const u = await kvUsage(p); used[p] = u; bytes += u.bytes; keys += u.keys; }
+      await rememberUsage(bytes);
+      return J({ used, bytes, keys, kv: await kvStats() });
+    }
+    if (mode === "wants") return J({ items: withKey(await listWants()) });
+    if (mode === "stats") return J({ wants: (await listWants()).length, kv: await kvStats() });
+    if (mode === "get") {
+      const b = await kokoroClip(u.searchParams.get("t") || "", u.searchParams.get("v") || "n");
+      return b ? new Response(new Uint8Array(b), { headers: { "Content-Type": "audio/mpeg", "Cache-Control": "no-store" } }) : J({ error: "missing" }, 404);
+    }
+    return J({ error: "mode?" }, 400);
+  } catch (e: any) { return kvFail(e); }
 }
 
 export async function POST(req: Request) {
   if (!importAuthorized(req)) return importDenied();
   let body: any = {};
   try { body = JSON.parse(await req.text()); } catch { return J({ error: "bad json" }, 400); }
+  try {
   if (body.prepTalks) return J(await prepAllTalks(Math.min(5, Number(body.prepTalks.max) || 4)));
   if (body.queueAll) { // re-queue every uploaded book's clips (idempotent; only new wants set the flag)
     const ks = await kvKeys("reader:mybook:*", 5000); let n = 0;
@@ -69,6 +78,7 @@ export async function POST(req: Request) {
     if (!(head[0] === 0x49 && head[1] === 0x44) && !(head[0] === 0xff && (head[1] & 0xe0) === 0xe0)) continue; // ID3 / MPEG frame
     await storeKokoroClip(t, v, b64); stored++; del.push(wantKeyOf(t, v));
   }
-  if (del.length) await kvDel(...del);
+  if (del.length) await dropWants(del);
   return J({ stored });
+  } catch (e: any) { return kvFail(e); }
 }

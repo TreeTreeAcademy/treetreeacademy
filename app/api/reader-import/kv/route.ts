@@ -14,7 +14,9 @@ export async function GET(req: Request) {
   const u = new URL(req.url);
   const match = u.searchParams.get("match") || "";
   if (!okKey(match.replace(/\*$/, "")) && !/^reader:[a-z0-9:_-]*\*$/.test(match)) return J({ error: "bad match" }, 400);
-  const keys = await kvKeys(match, Math.min(100000, Math.max(1, Number(u.searchParams.get("max") || 20000))));
+  let keys: string[];
+  try { keys = await kvKeys(match, Math.min(100000, Math.max(1, Number(u.searchParams.get("max") || 20000)))); }
+  catch (e: any) { return J({ error: "kv", detail: String(e?.message || e).slice(0, 200) }, 503); }
   if (u.searchParams.get("len") === "1") {
     const lens: Record<string, number | null> = {};
     for (let i = 0; i < keys.length; i += 200) {

@@ -13,7 +13,10 @@ async function upstash(cmds: Cmd[]): Promise<any[]> {
     method: "POST", headers: { Authorization: `Bearer ${kv.token}`, "Content-Type": "application/json" },
     body: JSON.stringify(cmds.map((c) => c.map(String))), cache: "no-store",
   });
-  if (!r.ok) throw new Error(`kv ${r.status}`);
+  if (!r.ok) {
+    const t = await r.text().catch(() => "");
+    throw new Error(`kv ${r.status}${t ? " " + t.replace(/\s+/g, " ").slice(0, 180) : ""}`);
+  }
   const j = (await r.json()) as { result?: any; error?: string }[];
   const fail = j.find((x) => x.error);
   if (fail) throw new Error("kv " + fail.error);

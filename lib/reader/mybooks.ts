@@ -26,7 +26,8 @@ export type BookItem = {
 };
 
 export async function listBooks(user: string): Promise<BookItem[]> {
-  try { return JSON.parse((await kvGet(kIdx(user))) || "[]"); } catch { return []; }
+  const raw = await kvGet(kIdx(user));
+  try { return JSON.parse(raw || "[]"); } catch { return []; }
 }
 export async function getBook(user: string, id: string): Promise<string | null> {
   return kvGet(kBook(user, id));

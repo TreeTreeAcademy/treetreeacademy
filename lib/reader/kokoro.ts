@@ -5,7 +5,7 @@
 // Content for the backfill is read from the store at runtime (books, shared sources, lex, dialogues, progress);
 // nothing about the books lives in git.
 import { createHash } from "node:crypto";
-import { kvGet, kvKeys, kvMGet, kvSetNx, kvSet } from "@/lib/reader/store";
+import { kvDel, kvGet, kvKeys, kvMGet, kvSetNx, kvSet } from "@/lib/reader/store";
 import { r2Configured, r2Get, r2Put, r2ClipKey } from "@/lib/reader/r2";
 import { listUsers } from "@/lib/reader/users";
 import { listBooks, getBook } from "@/lib/reader/mybooks";
@@ -49,22 +49,45 @@ export async function storeKokoroClip(t: string, v: string, b64: string) {
   }
   await kvSet(key, b64);
 }
+export const WANT_FLAG = "reader:kkw-flag";
+/** Packed wants list (one GET). Avoids SCAN/MGET of thousands of leftover kkw:* keys on every box poll. */
+const WANT_BAG = "reader:kkw-bag";
+type Want = { t: string; v: string };
+async function readWantBag(): Promise<Record<string, Want>> {
+  try { return JSON.parse((await kvGet(WANT_BAG)) || "{}") || {}; } catch { return {}; }
+}
+async function writeWantBag(bag: Record<string, Want>) {
+  await kvSet(WANT_BAG, JSON.stringify(bag));
+}
 export async function recordWant(t: string, v: string) {
   const n = kkNorm(t);
   if (!KK_VOICES[v] || !n || !/[a-z]/i.test(n) || /[\u3000-\u9fff]/.test(n)) return;
-  try { if (await kvSetNx(wantKey(n, v), JSON.stringify({ t: n, v }), 30 * 86400)) await kvSet(WANT_FLAG, String(Date.now()), 30 * 86400); } catch { /* best effort */ }
+  try {
+    const k = wantKey(n, v);
+    const bag = await readWantBag();
+    if (bag[k]) return;
+    bag[k] = { t: n, v };
+    await writeWantBag(bag);
+    await kvSetNx(k, JSON.stringify({ t: n, v }), 30 * 86400);
+    await kvSet(WANT_FLAG, String(Date.now()), 30 * 86400);
+  } catch { /* best effort */ }
 }
-export async function listWants(): Promise<{ t: string; v: string }[]> {
-  const ks = await kvKeys("reader:kkw:*", 5000);
-  const out: { t: string; v: string }[] = [];
-  for (let i = 0; i < ks.length; i += 200) {
-    (await kvMGet(ks.slice(i, i + 200))).forEach((x) => { try { const j = JSON.parse(x || ""); if (j.t && KK_VOICES[j.v]) out.push(j); } catch { /* skip */ } });
-  }
-  return out;
+export async function listWants(): Promise<Want[]> {
+  const bag = await readWantBag();
+  return Object.values(bag).filter((j) => j?.t && KK_VOICES[j.v]);
+}
+export async function dropWants(keys: string[]) {
+  const uniq = [...new Set(keys.filter((k) => typeof k === "string" && k.startsWith("reader:kkw:")))];
+  if (!uniq.length) return;
+  try {
+    const bag = await readWantBag();
+    let n = 0;
+    for (const k of uniq) if (k in bag) { delete bag[k]; n++; }
+    if (n) await writeWantBag(bag);
+    await kvDel(...uniq);
+  } catch { /* best effort */ }
 }
 export const wantKeyOf = wantKey;
-// one cheap GET for the box watcher: ms timestamp of the newest "wanted" clip
-export const WANT_FLAG = "reader:kkw-flag";
 
 // ---------- content collection ----------
 const TOK = /[A-Za-z]+(?:['’][A-Za-z]+)?/g;
