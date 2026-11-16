@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import AboutJing from "./_site/AboutJing";
 
 export const metadata: Metadata = {
-  title: { absolute: "你会说中文，不等于孩子能学会中文｜树儿学院 · 海外家庭中文传承" },
+  title: { absolute: "你会说中文，不等于孩子能学会中文｜中文生命力 · 树儿学院 Tree Tree Academy" },
   description:
     "孩子听得懂中文，却总回英文？前高中语文老师、美国大学中文老师 Jing，带海外华裔和混血家庭先找到孩子卡在哪：词汇、信心还是习惯，再给你今晚就能试的第一步。免费 3 问自查。",
   alternates: { canonical: "/" },
@@ -15,7 +15,7 @@ export default function HomePage() {
   return (
     <>
       <section className="hero lp-hero">
-        <div className="section-label">树儿学院 · 海外家庭中文传承</div>
+        <div className="section-label">中文生命力 · 海外家庭中文传承</div>
         <h1>你会说中文，不等于孩子能学会中文</h1>
         <p className="lead">
           孩子听得懂你的中文，回你的却是英文？多半不是孩子不肯说，而是卡在了三个地方之一：词汇、信心、习惯。

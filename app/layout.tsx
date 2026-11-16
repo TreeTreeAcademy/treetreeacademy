@@ -48,6 +48,7 @@ export default function RootLayout({
               />
               <span className="site-logo__text">
                 <span className="site-logo__zh">树儿学院</span>
+                <span className="site-logo__en">Tree Tree Academy</span>
               </span>
             </a>
             <nav className="site-nav" aria-label="主导航">
