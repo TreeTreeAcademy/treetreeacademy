@@ -7,7 +7,7 @@ export const metadata: Metadata = {
     template: "%s · 树儿学院",
   },
   description:
-    "树儿学院 — 小群姐姐听故事复述，亲子表达练习简报",
+    "树儿学院：给海外华裔和混合家庭的中文传承方法。你会说中文，不等于孩子能学会中文——先找到孩子卡在词汇、信心还是习惯，再做第一步。",
   metadataBase: new URL("https://treetreeacademy.com"),
   openGraph: {
     siteName: "树儿学院",
@@ -51,7 +51,8 @@ export default function RootLayout({
               </span>
             </a>
             <nav className="site-nav" aria-label="主导航">
-              <a href="/">首页</a>
+              <a href="/start">免费自查</a>
+              <a href="/workshop">工作坊</a>
               <a href="/xiaoqun">小群姐姐</a>
               <a href="/hanzi">汉字学习</a>
               <a href="/reader" className="site-nav__learn">树儿读读乐</a>
