@@ -5,8 +5,10 @@ export const SITE_URL = "https://treetreeacademy.com";
 
 export const WORKSHOP = {
   titleZh: "孩子不肯说中文，家长先做哪一步",
-  // 依据：测试方案 第九节（2026-11-10）：中文 ¥99、限 30 人、"测试价"口径。
-  priceZh: "¥99", // TODO(Jing)：确认价格
+  // 原测试方案（11-10）是 ¥99；以 Jing 2026-11-16 最新定价为准。
+  // 2026-11-16 Jing 定价：¥199 / $29（两边价格接近）。现在只收等候名单，不收钱。
+  priceZh: "¥199",
+  priceEn: "$29",
   seats: 30,
   durationMin: 60,
   // TODO(Jing)：日期 / 时间（美中时间）/ 平台 / 付款方式。未定前页面只收"意向登记"，不收钱。

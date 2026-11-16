@@ -7,7 +7,7 @@ export const runtime = "nodejs";
 const fails = new Map<string, { n: number; t: number }>(); // best-effort throttle per instance
 
 function safeNext(n: string): string {
-  return /^\/reader(\/[\w\-./]*)?$/.test(n) ? n : "/reader";
+  return /^\/(reader|xiaoqun|hanzi)(\/[\w\-./]*)?$/.test(n) ? n : "/reader";
 }
 
 export async function POST(req: Request) {

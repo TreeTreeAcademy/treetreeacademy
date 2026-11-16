@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import StartFlow from "../../_site/StartFlow";
 import Placeholder from "../../_site/Placeholder";
 import AboutJing from "../../_site/AboutJing";
+import { PHOTOS, asset } from "@/lib/site/assets";
 import { STARTER_KIT_PDF } from "@/lib/site/config";
 
 export const metadata: Metadata = {
@@ -22,17 +23,25 @@ const DAYS = [
 ];
 
 export default function EnStartPage() {
+  const photo = asset(PHOTOS.welcome);
   return (
-    <div lang="en">
-      <p className="meta lp-lang"><a href="/start" lang="zh-CN">中文版 →</a></p>
-      <section className="hero lp-hero">
-        <div className="section-label">Free 7-Day Starter Kit</div>
-        <h1>Your child understands everything you say in Mandarin. But they answer in English.</h1>
-        <p className="lead">
-          7 days. 15 minutes a day. At a time your family already has — dinner, the car, bedtime. No extra lessons. One small step a day.
-        </p>
+    <div lang="en" className="lp-page">
+      <section className="lp-band lp-band--hero">
+        <div className="lp-wrap lp-hero2">
+          <div className="lp-hero2__text">
+            <p className="lp-small"><a href="/start" lang="zh-CN">中文版 →</a></p>
+            <p className="lp-eyebrow">Free 7-Day Starter Kit</p>
+            <h1 className="lp-h1 lp-h1--md">Your child understands everything you say in Mandarin. But they answer in English.</h1>
+            <p className="lp-sub">7 days. 15 minutes a day. At a time your family already has — dinner, the car, bedtime. No extra lessons. One small step a day.</p>
+            <div className="lp-ctas"><a href="#check" className="lp-btn lp-btn--primary">{"Take the 3-question check"}</a></div>
+          </div>
+          <div className="lp-hero2__photo">
+            <div className="lp-hero2__disc" aria-hidden="true" />
+            {photo && <img src={photo} alt="" width={480} height={371} fetchPriority="high" />}
+          </div>
+        </div>
       </section>
-
+      <div className="lp-wrap lp-body">
       <section>
         <h2>The 7 days</h2>
         <ul className="lp-days">
@@ -42,6 +51,7 @@ export default function EnStartPage() {
         </ul>
       </section>
 
+      <div className="lp-startgrid">
       <StartFlow
         lang="en"
         form={{
@@ -62,6 +72,7 @@ export default function EnStartPage() {
           ),
         }}
       />
+      </div>
 
       <section>
         <h2>What happens after you sign up</h2>
@@ -73,7 +84,7 @@ export default function EnStartPage() {
         <p><Placeholder>these 3 steps only become true once the kit PDF is uploaded and an email service is connected</Placeholder></p>
       </section>
 
-      <AboutJing lang="en" />
+      <AboutJing lang="en" strip />
 
       <section>
         <h2>FAQ</h2>
@@ -89,6 +100,7 @@ export default function EnStartPage() {
           This kit is the start, not the whole system. The next step is the Speak More Mandarin at Home camp: 4 weeks, one step a week, with live coaching. Details are on the camp page when enrollment opens.
         </p>
       </section>
+    </div>
     </div>
   );
 }

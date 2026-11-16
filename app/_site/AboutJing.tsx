@@ -19,12 +19,25 @@ const EN = [
   "Tree Tree Academy turns what I've tested in the classroom and at home into small, doable steps for everyday parents, so Chinese can truly live in your family's daily life.",
 ];
 
-function Photo({ src, alt, className }: { src: string; alt: string; className: string }) {
-  const s = asset(src);
-  return s ? (
-    <img src={s} alt={alt} className={className} loading="lazy" decoding="async" />
-  ) : (
-    <div className={className + " lp-photo-missing"}><Placeholder>照片</Placeholder></div>
+export function TeachStrip({ lang = "zh" }: { lang?: "zh" | "en" }) {
+  const zh = lang === "zh";
+  const teach = PHOTOS.teaching.filter((p) => asset(p.src));
+  return (
+    <figure className="lp-teach">
+      <figcaption>
+        <strong>{zh ? "课堂里的我" : "In the classroom"}</strong>
+        {zh
+          ? " · 在俄亥俄州的大学，给美国大学生上中文课：野餐、中国文化活动、剪纸。"
+          : " · Teaching Chinese to American college students in Ohio: a class picnic, a Chinese culture event, paper-cutting."}
+      </figcaption>
+      {teach.length ? (
+        <div className="lp-teach__row">
+          {teach.map((p) => <img key={p.src} src={p.src} alt={p.alt} loading="lazy" decoding="async" />)}
+        </div>
+      ) : (
+        <Placeholder>3 张教学照片</Placeholder>
+      )}
+    </figure>
   );
 }
 
@@ -32,37 +45,23 @@ export default function AboutJing({
   lang = "zh",
   short = false,
   photo = PHOTOS.about,
-}: { lang?: "zh" | "en"; short?: boolean; photo?: string }) {
+  strip = !short,
+}: { lang?: "zh" | "en"; short?: boolean; photo?: string; strip?: boolean }) {
   const zh = lang === "zh";
   const paras = zh ? ZH : EN;
   const shown = short ? [paras[0], paras[1], paras[2], paras[4]] : paras;
-  const teach = PHOTOS.teaching.filter((p) => asset(p.src));
+  const src = asset(photo);
   return (
-    <section className="lp-about" id="about">
-      <div className="lp-about__head">
-        <Photo src={photo} alt={zh ? "晶晶" : "Jingjing"} className="lp-about__photo" />
-        <h2>{zh ? "关于我" : "About Jingjing"}</h2>
+    <section className="lp-about2" id="about">
+      <div className="lp-about2__photo">
+        {src ? <img src={src} alt={zh ? "晶晶" : "Jingjing"} loading="lazy" decoding="async" /> : <Placeholder>照片</Placeholder>}
       </div>
-      <div className="lp-about__body">
-        {shown.map((p, i) => <p key={i} className={i === 0 ? "lp-about__hi" : undefined}>{p}</p>)}
+      <div className="lp-about2__body">
+        <p className="lp-eyebrow">{zh ? "关于我" : "About Jingjing"}</p>
+        <h2 className="lp-h2">{paras[0]}</h2>
+        {shown.slice(1).map((p, i) => <p key={i}>{p}</p>)}
       </div>
-      {!short && (
-        <figure className="lp-teach">
-          <figcaption>
-            <strong>{zh ? "课堂里的我" : "In the classroom"}</strong>
-            {zh
-              ? " · 在俄亥俄州的大学，给美国大学生上中文课：野餐、中国文化活动、剪纸。"
-              : " · Teaching Chinese to American college students in Ohio: a class picnic, a Chinese culture event, paper-cutting."}
-          </figcaption>
-          {teach.length ? (
-            <div className="lp-teach__row">
-              {teach.map((p) => <img key={p.src} src={p.src} alt={p.alt} loading="lazy" decoding="async" />)}
-            </div>
-          ) : (
-            <Placeholder>3 张教学照片</Placeholder>
-          )}
-        </figure>
-      )}
+      {strip && <div className="lp-about2__strip"><TeachStrip lang={lang} /></div>}
     </section>
   );
 }

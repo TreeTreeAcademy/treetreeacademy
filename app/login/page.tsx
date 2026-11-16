@@ -14,15 +14,24 @@ const ERR: Record<string, string> = {
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; err?: string }> }) {
   const sp = await searchParams;
-  const next = sp.next && /^\/reader(\/[\w\-./]*)?$/.test(sp.next) ? sp.next : "/reader";
+  const next = sp.next && /^\/(reader|xiaoqun|hanzi)(\/[\w\-./]*)?$/.test(sp.next) ? sp.next : "/reader";
   const user = await verifySession((await cookies()).get(READER_COOKIE)?.value);
   if (user) redirect(next);
   return (
     <section className="reader-login">
       <img src="/logo.png" alt="" width={84} height={84} className="hero__logo" />
-      <h1>树儿读读乐</h1>
-      <p className="meta">TreeTree Read &amp; Grow · 树儿学院</p>
-      <p className="lead">登录后开始：读原文、点单词、学习 → 复习 → 成就仓。账号由树儿学院分配。</p>
+      {next.startsWith("/reader") ? (
+        <>
+          <h1>树儿读读乐</h1>
+          <p className="meta">TreeTree Read &amp; Grow · 树儿学院</p>
+          <p className="lead">登录后开始：读原文、点单词、学习 → 复习 → 成就仓。账号由树儿学院分配。</p>
+        </>
+      ) : (
+        <>
+          <h1>树儿学院 · 会员登录</h1>
+          <p className="lead">小群姐姐、汉字学习和树儿读读乐需要登录后查看。账号由树儿学院分配。</p>
+        </>
+      )}
       <form method="post" action="/api/reader/login" className="card reader-login__form">
         <input type="hidden" name="next" value={next} />
         <label>

@@ -1,8 +1,8 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { READER_COOKIE, verifySession } from "@/lib/reader/session";
 
-// Everything under /reader (static app in public/reader) and /api/reader/* requires a reader login,
-// except the login endpoint itself.
+// Everything under /reader (static app in public/reader), /xiaoqun, /hanzi and /api/reader/* requires
+// a reader login (same session cookie), except the login endpoint itself.
 export async function middleware(req: NextRequest) {
   const { pathname, search } = req.nextUrl;
   if (pathname === "/api/reader/login") return NextResponse.next();
@@ -17,4 +17,6 @@ export async function middleware(req: NextRequest) {
   return NextResponse.redirect(url);
 }
 
-export const config = { matcher: ["/reader", "/reader/:path*", "/api/reader/:path*"] };
+export const config = {
+  matcher: ["/reader", "/reader/:path*", "/api/reader/:path*", "/xiaoqun", "/xiaoqun/:path*", "/hanzi", "/hanzi/:path*"],
+};

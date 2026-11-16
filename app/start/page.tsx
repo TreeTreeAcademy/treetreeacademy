@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import StartFlow from "../_site/StartFlow";
 import AboutJing from "../_site/AboutJing";
-import { PHOTOS } from "@/lib/site/assets";
+import { PHOTOS, asset } from "@/lib/site/assets";
 
 export const metadata: Metadata = {
   title: { absolute: "孩子听得懂中文却不说？3 问免费自查｜树儿学院" },
@@ -21,17 +21,26 @@ const DAYS = [
 ];
 
 export default function StartPage() {
+  const photo = asset(PHOTOS.welcome);
   return (
-    <>
-      <p className="meta lp-lang"><a href="/en/start" lang="en">English version →</a></p>
-      <section className="hero lp-hero">
-        <div className="section-label">免费 · 3 分钟</div>
-        <h1>你会说中文，不等于孩子能学会中文</h1>
-        <p className="lead">
-          孩子不是不肯说中文，是卡在了词汇、信心、习惯其中一个地方。先用 3 个问题找到卡点，再做今晚就能试的第一步。
-        </p>
+    <div className="lp-page">
+      <section className="lp-band lp-band--hero">
+        <div className="lp-wrap lp-hero2">
+          <div className="lp-hero2__text">
+            <p className="lp-small"><a href="/en/start" lang="en">English version →</a></p>
+            <p className="lp-eyebrow">免费 · 3 分钟</p>
+            <h1 className="lp-h1 lp-h1--md">你会说中文，不等于孩子能学会中文</h1>
+            <p className="lp-sub">孩子不是不肯说中文，是卡在了词汇、信心、习惯其中一个地方。先用 3 个问题找到卡点，再做今晚就能试的第一步。</p>
+            <div className="lp-ctas"><a href="#check" className="lp-btn lp-btn--primary">{"开始 3 问自查"}</a></div>
+          </div>
+          <div className="lp-hero2__photo">
+            <div className="lp-hero2__disc" aria-hidden="true" />
+            {photo && <img src={photo} alt="" width={480} height={371} fetchPriority="high" />}
+          </div>
+        </div>
       </section>
-
+      <div className="lp-wrap lp-body">
+      <div className="lp-startgrid">
       <StartFlow
         lang="zh"
         form={{
@@ -48,6 +57,7 @@ export default function StartPage() {
           ),
         }}
       />
+      </div>
 
       <section>
         <h2>7 天启动包里有什么</h2>
@@ -59,7 +69,7 @@ export default function StartPage() {
         </ul>
       </section>
 
-      <AboutJing short photo={PHOTOS.welcome} />
+      <AboutJing short photo={PHOTOS.about} />
 
       <section>
         <h2>常见问题</h2>
@@ -75,6 +85,7 @@ export default function StartPage() {
           </dd>
         </dl>
       </section>
-    </>
+    </div>
+    </div>
   );
 }

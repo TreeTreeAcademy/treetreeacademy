@@ -1,5 +1,4 @@
 import type { MetadataRoute } from "next";
-import { getAllEpisodes } from "@/lib/episodes";
 import { SITE_URL } from "@/lib/site/config";
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -15,14 +14,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       alternates: { languages: { "zh-CN": `${SITE_URL}/start`, en: `${SITE_URL}/en/start` } },
     },
     { url: `${SITE_URL}/workshop`, lastModified: now, changeFrequency: "weekly", priority: 0.8 },
-    { url: `${SITE_URL}/xiaoqun`, lastModified: now, changeFrequency: "daily", priority: 0.6 },
-    { url: `${SITE_URL}/hanzi`, lastModified: now, changeFrequency: "monthly", priority: 0.5 },
   ];
-  const eps = getAllEpisodes().map((e) => ({
-    url: `${SITE_URL}/xiaoqun/${e.slug}`,
-    lastModified: new Date(e.date),
-    changeFrequency: "yearly" as const,
-    priority: 0.4,
-  }));
-  return [...fixed, ...eps];
+  // /xiaoqun、/hanzi、/reader 需要登录，不进 sitemap
+  return fixed;
 }

@@ -5,14 +5,14 @@ type Lang = "zh" | "en";
 
 const T = {
   zh: {
-    name: "怎么称呼你",
-    email: "邮箱（必填）",
+    name: "称呼（选填）",
+    email: "邮箱 Email（必填）",
     wechat: "微信号（选填）",
     sending: "提交中…",
     err: "提交没成功，请稍后再试。",
   },
   en: {
-    name: "Name",
+    name: "Name (optional)",
     email: "Email",
     wechat: "",
     sending: "Sending…",
