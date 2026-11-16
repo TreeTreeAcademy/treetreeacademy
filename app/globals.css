@@ -2,23 +2,24 @@
 
 :root {
   /* Logo tokens */
-  --color-gold: #fdd100;
-  --color-lime: #aae013;
-  --color-mid-green: #53bd25;
-  --color-forest: #00964f;
-  --color-forest-deep: #007a40;
+  --color-gold: #fdc302; /* sampled from Tree Tree Academy Logo.png */
+  --color-lime: #8fca02;
+  --color-mid-green: #50bb18;
+  --color-forest: #028a41;
+  --color-forest-deep: #01702f;
+  --color-ink: #022e02; /* logo text */
 
   --color-bg: #f7f9f0;
   --color-surface: #ffffff;
   --color-surface-soft: #eef8d8;
   --color-border: #cfe6b0;
-  --color-text: #14301f;
+  --color-text: #022e02;
   --color-text-muted: #4a6b52;
-  --color-accent: #00964f;
-  --color-accent-hover: #007a40;
+  --color-accent: #028a41;
+  --color-accent-hover: #01702f;
   --color-accent-soft: #c8ef88;
-  --color-warm: #e6b800;
-  --color-link: #00964f;
+  --color-warm: #fdc302;
+  --color-link: #028a41;
   --max-width: 40rem;
   --font-sans: "Noto Sans SC", "PingFang SC", "Hiragino Sans GB",
     "Microsoft YaHei", "WenQuanYi Micro Hei", system-ui, sans-serif;
@@ -843,7 +844,7 @@ p {
 .lp-teach__row img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; display: block; }
 @media (max-width: 480px) { .lp-teach__row { grid-template-columns: 1fr 1fr; } .lp-teach__row img:first-child { grid-column: 1 / -1; aspect-ratio: 16 / 9; } }
 .lp-hero--photo { display: grid; grid-template-columns: 1fr; gap: 0.5rem; align-items: end; }
-.lp-hero__img { width: min(62vw, 260px); height: auto; justify-self: center; display: block; }
+.lp-hero__img { width: min(52vw, 210px); height: auto; justify-self: center; display: block; }
 @media (min-width: 720px) {
   .lp-hero--photo { grid-template-columns: 1fr 240px; }
   .lp-hero__img { grid-column: 2; grid-row: 1; width: 240px; }
@@ -882,3 +883,8 @@ p {
 .lp-faq dt { font-weight: 700; margin-top: 1rem; }
 .lp-faq dd { margin: 0.25rem 0 0; }
 .site-logo__en { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--color-text-muted); }
+.site-logo__full { height: 48px; width: auto; display: block; }
+@media (max-width: 560px) { .site-logo__full { height: 40px; } }
+/* brand photos */
+.lp-hero__img { filter: drop-shadow(0 6px 14px rgba(2, 46, 2, 0.12)); }
+.lp-about__photo:not(.lp-photo-missing) { background: var(--color-surface-soft); border-radius: 50% 50% var(--radius) var(--radius); object-fit: contain; object-position: bottom; }

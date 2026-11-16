@@ -10,6 +10,7 @@ export const PHOTOS = {
   hero: "/brand/jing-explaining.webp",
   about: "/brand/jing-smile.webp",
   workshop: "/brand/jing-heart.webp",
+  welcome: "/brand/jing-welcome.webp",
   teaching: [
     { src: "/brand/teach-picnic.webp", alt: "和美国大学生的中文课野餐" },
     { src: "/brand/teach-culture.webp", alt: "大学中国文化活动，晶晶穿旗袍和师生合影" },

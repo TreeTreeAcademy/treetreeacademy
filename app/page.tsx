@@ -18,7 +18,7 @@ export default function HomePage() {
     <>
       <section className="hero lp-hero lp-hero--photo">
         {hero && (
-          <img src={hero} alt="晶晶" className="lp-hero__img" width={480} height={600} fetchPriority="high" />
+          <img src={hero} alt="晶晶" className="lp-hero__img" width={573} height={640} fetchPriority="high" />
         )}
         <div className="lp-hero__text">
         <div className="section-label">中文生命力 · 海外家庭中文传承</div>

@@ -40,16 +40,12 @@ export default function RootLayout({
           <div className="site-header__inner">
             <a href="/" className="site-logo">
               <img
-                src="/logo.png"
-                alt=""
-                width={40}
-                height={40}
-                className="site-logo__mark"
+                src="/brand/logo-header.webp"
+                alt="树儿学院 Tree Tree Academy"
+                width={150}
+                height={56}
+                className="site-logo__full"
               />
-              <span className="site-logo__text">
-                <span className="site-logo__zh">树儿学院</span>
-                <span className="site-logo__en">Tree Tree Academy</span>
-              </span>
             </a>
             <nav className="site-nav" aria-label="主导航">
               <a href="/start">免费自查</a>

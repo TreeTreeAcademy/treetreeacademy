@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import StartFlow from "../_site/StartFlow";
 import AboutJing from "../_site/AboutJing";
+import { PHOTOS } from "@/lib/site/assets";
 
 export const metadata: Metadata = {
   title: { absolute: "孩子听得懂中文却不说？3 问免费自查｜树儿学院" },
@@ -58,7 +59,7 @@ export default function StartPage() {
         </ul>
       </section>
 
-      <AboutJing short />
+      <AboutJing short photo={PHOTOS.welcome} />
 
       <section>
         <h2>常见问题</h2>
