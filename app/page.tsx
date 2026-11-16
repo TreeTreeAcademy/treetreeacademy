@@ -1,20 +1,26 @@
 import { getLatestEpisode, formatDate, themeLabels } from "@/lib/episodes";
 import type { Metadata } from "next";
 import AboutJing from "./_site/AboutJing";
+import { PHOTOS, asset } from "@/lib/site/assets";
 
 export const metadata: Metadata = {
   title: { absolute: "你会说中文，不等于孩子能学会中文｜中文生命力 · 树儿学院 Tree Tree Academy" },
   description:
-    "孩子听得懂中文，却总回英文？前高中语文老师、美国大学中文老师 Jing，带海外华裔和混血家庭先找到孩子卡在哪：词汇、信心还是习惯，再给你今晚就能试的第一步。免费 3 问自查。",
+    "孩子听得懂中文，却总回英文？武汉重点高中前语文老师、美国俄亥俄州大学中文老师晶晶，带海外华裔和混血家庭先找到孩子卡在哪：词汇、信心还是习惯，再给你今晚就能试的第一步。免费 3 问自查。",
   alternates: { canonical: "/" },
 };
 
 export default function HomePage() {
   const latest = getLatestEpisode();
+  const hero = asset(PHOTOS.hero);
 
   return (
     <>
-      <section className="hero lp-hero">
+      <section className="hero lp-hero lp-hero--photo">
+        {hero && (
+          <img src={hero} alt="晶晶" className="lp-hero__img" width={480} height={600} fetchPriority="high" />
+        )}
+        <div className="lp-hero__text">
         <div className="section-label">中文生命力 · 海外家庭中文传承</div>
         <h1>你会说中文，不等于孩子能学会中文</h1>
         <p className="lead">
@@ -26,9 +32,10 @@ export default function HomePage() {
           <a href="/workshop" className="btn btn--ghost">直播工作坊（登记意向）</a>
         </div>
         <p className="meta"><a href="/en/start" lang="en">English: free 7-Day Starter Kit →</a></p>
+        </div>
       </section>
 
-      <AboutJing short />
+      <AboutJing />
 
       <section>
         <h2>Tree Tree System：测 → 练 → 读</h2>

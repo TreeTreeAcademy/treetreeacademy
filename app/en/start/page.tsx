@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import StartFlow from "../../_site/StartFlow";
 import Placeholder from "../../_site/Placeholder";
+import AboutJing from "../../_site/AboutJing";
 import { STARTER_KIT_PDF } from "@/lib/site/config";
 
 export const metadata: Metadata = {
   title: { absolute: "Your child understands Mandarin but answers in English? Free 7-Day Starter Kit | Tree Tree Academy" },
   description:
-    "7 days, 15 minutes a day, at a time your family already has. Start with a 3-question check: vocabulary, confidence, or habit. Free, from Jing, a former Mandarin teacher raising two bilingual kids.",
+    "7 days, 15 minutes a day, at a time your family already has. Start with a 3-question check: vocabulary, confidence, or habit. Free, from Jingjing: former high-school Chinese teacher in Wuhan, Chinese teacher at an Ohio university, raising two bilingual kids.",
   alternates: { canonical: "/en/start", languages: { "zh-CN": "/start", en: "/en/start" } },
 };
 
@@ -72,16 +73,7 @@ export default function EnStartPage() {
         <p><Placeholder>these 3 steps only become true once the kit PDF is uploaded and an email service is connected</Placeholder></p>
       </section>
 
-      <section className="lp-about">
-        <div className="lp-about__photo"><Placeholder>photo</Placeholder></div>
-        <div>
-          <h2>About Jing</h2>
-          <p>
-            I&apos;m Jing — like Jinglebell. I taught Chinese at a high school in China and then Mandarin at a university in the US.
-            Now I&apos;m raising two bilingual kids, both fluent in English and Chinese — and I&apos;m sharing the system that works at home, one real moment at a time.
-          </p>
-        </div>
-      </section>
+      <AboutJing lang="en" />
 
       <section>
         <h2>FAQ</h2>

@@ -827,14 +827,28 @@ p {
 .lp-two { display: grid; grid-template-columns: 1fr; gap: 0 1rem; }
 @media (min-width: 640px) { .lp-two { grid-template-columns: 1fr 1fr; } }
 .lp-two ul { padding-left: 1.2rem; margin: 0; }
-.lp-about { display: flex; gap: 1rem; align-items: flex-start; margin: 2rem 0; }
-.lp-about h2 { margin-top: 0; }
+.lp-about { margin: 2.25rem 0; }
+.lp-about__head { display: flex; align-items: flex-end; gap: 1rem; border-bottom: 2px solid var(--color-accent-soft); }
+.lp-about__head h2 { margin: 0 0 0.5rem; border: none; padding: 0; }
 .lp-about__photo {
-  flex: 0 0 96px; height: 96px; border-radius: 50%; background: var(--color-surface-soft);
-  display: flex; align-items: center; justify-content: center; text-align: center; overflow: hidden; font-size: 0.75rem;
+  flex: 0 0 auto; width: 120px; height: 150px; object-fit: cover; object-position: top;
+  display: flex; align-items: center; justify-content: center; text-align: center;
 }
+.lp-photo-missing { background: var(--color-surface-soft); border-radius: var(--radius) var(--radius) 0 0; }
 .lp-about__photo .lp-todo { font-size: 0.7rem; padding: 0.1rem 0.25rem; }
-@media (max-width: 480px) { .lp-about { flex-direction: column; } }
+.lp-about__hi { font-weight: 700; font-size: 1.15rem; }
+.lp-teach { margin: 1.25rem 0 0; }
+.lp-teach figcaption { font-size: 0.95rem; color: var(--color-text-muted); margin-bottom: 0.5rem; }
+.lp-teach__row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; }
+.lp-teach__row img { width: 100%; aspect-ratio: 4 / 3; object-fit: cover; border-radius: 10px; display: block; }
+@media (max-width: 480px) { .lp-teach__row { grid-template-columns: 1fr 1fr; } .lp-teach__row img:first-child { grid-column: 1 / -1; aspect-ratio: 16 / 9; } }
+.lp-hero--photo { display: grid; grid-template-columns: 1fr; gap: 0.5rem; align-items: end; }
+.lp-hero__img { width: min(62vw, 260px); height: auto; justify-self: center; display: block; }
+@media (min-width: 720px) {
+  .lp-hero--photo { grid-template-columns: 1fr 240px; }
+  .lp-hero__img { grid-column: 2; grid-row: 1; width: 240px; }
+  .lp-hero__text { grid-column: 1; grid-row: 1; }
+}
 .lp-check__intro { font-weight: 600; }
 .lp-check__list { padding-left: 1.3rem; }
 .lp-check__list li { margin-bottom: 0.9rem; }

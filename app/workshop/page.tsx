@@ -3,6 +3,7 @@ import SignupForm from "../_site/SignupForm";
 import AboutJing from "../_site/AboutJing";
 import Placeholder from "../_site/Placeholder";
 import { WORKSHOP } from "@/lib/site/config";
+import { PHOTOS } from "@/lib/site/assets";
 
 export const metadata: Metadata = {
   title: { absolute: `${WORKSHOP.titleZh}｜60 分钟直播工作坊 · 树儿学院` },
@@ -64,7 +65,7 @@ export default function WorkshopPage() {
         </div>
       </section>
 
-      <AboutJing />
+      <AboutJing photo={PHOTOS.workshop} />
 
       <section className="lp-box lp-offer" id="signup">
         <h2>时间和报名</h2>
