@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import SignupForm from "../../_site/SignupForm";
 import AboutJing from "../../_site/AboutJing";
+import { StuckPoints, WorkshopAgenda, DailyMoments, PullQuote } from "../../_site/Visuals";
 import { WORKSHOP } from "@/lib/site/config";
 import { PHOTOS, asset } from "@/lib/site/assets";
 
@@ -9,26 +10,6 @@ export const metadata: Metadata = {
   description: `A ${WORKSHOP.price}, 60-minute live workshop for heritage-Chinese and mixed-heritage families: find where your child is stuck, learn 3 phrases that turn English answers back into Chinese, and leave with a one-week plan. Join the waitlist.`,
   alternates: { canonical: "/en/workshop", languages: { "zh-CN": "/workshop", en: "/en/workshop" } },
 };
-
-function Waitlist() {
-  return (
-    <div className="lp-waitlist">
-      <SignupForm
-        lang="en"
-        source="workshop-waitlist-en"
-        button="Join the waitlist"
-        smallPrint="We'll only email you about the workshop. Unsubscribe anytime."
-        success={
-          <>
-            <p><strong>You&apos;re on the waitlist. Thank you!</strong></p>
-            <p>You&apos;ll be the first to hear when registration opens.</p>
-            <p>In the meantime, <a href="/en/start">take the free 3-minute check →</a></p>
-          </>
-        }
-      />
-    </div>
-  );
-}
 
 export default function EnWorkshopPage() {
   const w = WORKSHOP;
@@ -41,56 +22,58 @@ export default function EnWorkshopPage() {
             <p className="lp-small"><a href="/workshop" lang="zh-CN">中文版 →</a></p>
             <p className="lp-eyebrow">Live online workshop · {w.durationMin} minutes</p>
             <h1 className="lp-h1 lp-h1--md">Your kid understands Chinese but answers in English?</h1>
-            <p className="lp-sub">
-              In one hour, find out where your child is stuck — and leave with a simple one-week plan to get them speaking Chinese at home.
-            </p>
+            <p className="lp-sub">In one hour, find out where your child is stuck — and leave with a simple one-week plan to get them speaking Chinese at home.</p>
             <p className="lp-price lp-price--big">{w.price}</p>
-            <div className="lp-ctas">
-              <a href="#waitlist" className="lp-btn lp-btn--primary">Join the waitlist</a>
-            </div>
+            <div className="lp-ctas"><a href="#waitlist" className="lp-btn lp-btn--primary">Join the waitlist</a></div>
           </div>
           <div className="lp-hero2__photo">
             <div className="lp-hero2__disc" aria-hidden="true" />
-            {photo && <img src={photo} alt="Jingjing" width={421} height={480} fetchPriority="high" />}
+            {photo && <img src={photo} alt="Jing" width={421} height={480} fetchPriority="high" />}
           </div>
         </div>
       </section>
 
-      <article className="lp-band lp-band--white">
+      <section className="lp-band lp-band--white">
         <div className="lp-wrap lp-prose">
           <h2 className="lp-h2">Sound familiar?</h2>
-          <p>You ask a question in Chinese at dinner. Your child answers — in English.</p>
-          <p>You say, &quot;In Chinese, please.&quot; You get two words, then they slide right back into English. Ask again, and the conversation is over.</p>
-          <p>Maybe you&apos;ve tried Saturday Chinese school, picture books, cartoons in Mandarin. Or maybe you don&apos;t speak much Chinese yourself, and you&apos;re not sure where to begin.</p>
-          <p className="lp-pull">This isn&apos;t a failure — not yours, and not your child&apos;s.</p>
-          <p>English is everywhere: school, friends, shows, the playground. Of course it wins by default. That&apos;s not a character flaw. It just means Chinese needs a small, steady place in your family&apos;s day.</p>
-
-          <h2 className="lp-h2">Here&apos;s what usually gets missed</h2>
-          <p>Kids who understand but don&apos;t speak are usually stuck in one of three places: <strong>vocabulary</strong>, <strong>confidence</strong>, or <strong>habit</strong>. Each one needs a different first step. Pushing harder doesn&apos;t fix any of them.</p>
-          <p>A two-hour weekend class can&apos;t cover the other six days of the week, either. Those days — dinner, the drive to school, bedtime — are where speaking actually happens.</p>
-          <p className="lp-pull">You don&apos;t need more effort. You need the right first step, and a routine you can keep.</p>
-
-          <h2 className="lp-h2">What you&apos;ll walk away with</h2>
-          <p>By the end of the hour, you&apos;ll know exactly where your child is stuck, you&apos;ll have a few phrases you can use tonight, and you&apos;ll have a one-week plan that fits into time your family already has: 15 minutes a day.</p>
+          <p>You ask a question in Chinese at dinner. Your child answers in English.</p>
+          <p>You say, &quot;In Chinese, please.&quot; You get two words, then they slide right back into English.</p>
+          <p>Maybe you&apos;ve tried weekend Chinese school, picture books, cartoons in Mandarin. Or maybe you don&apos;t speak much Chinese yourself and aren&apos;t sure where to begin.</p>
+          <PullQuote>This isn&apos;t a failure — not yours, and not your child&apos;s.</PullQuote>
         </div>
-      </article>
+      </section>
+
+      <section className="lp-band lp-band--green">
+        <div className="lp-wrap lp-center">
+          <h2 className="lp-h2">A weekend class covers two hours. Speaking happens in the other six days.</h2>
+          <p className="lp-narrow" style={{ margin: "0 auto" }}>Chinese doesn&apos;t need more of your time. It needs a small, steady spot in the day you already have:</p>
+          <DailyMoments lang="en" />
+        </div>
+      </section>
+
+      <section className="lp-band">
+        <div className="lp-wrap">
+          <p className="lp-eyebrow lp-center">Here&apos;s what usually gets missed</p>
+          <h2 className="lp-h2 lp-center">Kids who understand but won&apos;t speak are usually stuck in one of three places</h2>
+          <StuckPoints lang="en" />
+          <div className="lp-prose" style={{ margin: "40px auto 0" }}>
+            <PullQuote>You don&apos;t need more effort. You need the right first step, and a routine you can keep.</PullQuote>
+          </div>
+        </div>
+      </section>
 
       <section className="lp-band lp-band--cream">
         <div className="lp-wrap">
           <p className="lp-eyebrow lp-center">What we&apos;ll cover live</p>
           <h2 className="lp-h2 lp-center">60 minutes, three things, done together</h2>
-          <div className="lp-grid3">
-            <div className="lp-pillar"><span className="lp-pillar__n">1</span><h3>The 3-question check</h3><p>We&apos;ll run it together so you can see whether it&apos;s vocabulary, confidence, or habit, and pick your first step.</p></div>
-            <div className="lp-pillar"><span className="lp-pillar__n">2</span><h3>3 dinner-table phrases</h3><p>What to say when your child answers in English, so you can bring the conversation back to Chinese without nagging. We&apos;ll practice them.</p></div>
-            <div className="lp-pillar"><span className="lp-pillar__n">3</span><h3>Your one-week plan</h3><p>15 minutes a day, built around dinner, the car, or bedtime. You leave with it filled in.</p></div>
-          </div>
+          <WorkshopAgenda lang="en" />
           <p className="lp-center lp-note">Teaching plus live Q&amp;A, {w.durationMin} minutes in total. The goal: you can start the same evening.</p>
         </div>
       </section>
 
       <section className="lp-band lp-band--white">
         <div className="lp-wrap">
-          <AboutJing lang="en" />
+          <AboutJing lang="en" short strip />
         </div>
       </section>
 
@@ -99,11 +82,17 @@ export default function EnWorkshopPage() {
           <div>
             <p className="lp-eyebrow lp-eyebrow--light">The waitlist is open</p>
             <h2 className="lp-h2">Get your child speaking Chinese at home, one small step at a time</h2>
-            <p>
-              The workshop is <strong>{w.price}</strong>. Join the waitlist and you&apos;ll be the first to know when registration opens. No payment now.
-            </p>
+            <p>The workshop is <strong>{w.price}</strong>. Join the waitlist and you&apos;ll be the first to know when registration opens. No payment now.</p>
           </div>
-          <Waitlist />
+          <div className="lp-waitlist">
+            <SignupForm
+              lang="en"
+              source="workshop-waitlist-en"
+              button="Join the waitlist"
+              smallPrint="We'll only email you about the workshop. Unsubscribe anytime."
+              success={<><p><strong>You&apos;re on the waitlist. Thank you!</strong></p><p>You&apos;ll be the first to hear when registration opens.</p><p>In the meantime, <a href="/en/start">take the free 3-minute check →</a></p></>}
+            />
+          </div>
         </div>
       </section>
 
@@ -112,7 +101,9 @@ export default function EnWorkshopPage() {
           <h2 className="lp-h2">Questions parents ask</h2>
           <dl className="lp-faq">
             <dt>I don&apos;t speak much Chinese. Is this still for me?</dt>
-            <dd>The workshop is taught in English. The Chinese phrases come as short demo sentences with pinyin, so you can use them even if Chinese isn&apos;t your strongest language.</dd>
+            <dd>Yes. Everything is explained in English, and the Chinese phrases come as short demo sentences with pinyin, so you can use them even if Chinese isn&apos;t your strongest language.</dd>
+            <dt>Is there a Chinese-language session?</dt>
+            <dd>Yes. This session is taught in English. Prefer Chinese? There&apos;s a separate Chinese-language session — <a href="/workshop" lang="zh-CN">join that waitlist here</a>.</dd>
             <dt>I speak Chinese fluently. Why would I need this?</dt>
             <dd>Speaking a language and passing it on are two different skills. This hour isn&apos;t about your Chinese. It&apos;s about the order of steps: what to do first, how much each day, and what to say when your child answers in English.</dd>
             <dt>Is 60 minutes really enough?</dt>

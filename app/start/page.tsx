@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import StartFlow from "../_site/StartFlow";
+import { WeekTimeline } from "../_site/Visuals";
 import AboutJing from "../_site/AboutJing";
 import { PHOTOS, asset } from "@/lib/site/assets";
 
@@ -10,15 +11,6 @@ export const metadata: Metadata = {
   alternates: { canonical: "/start", languages: { "zh-CN": "/start", en: "/en/start" } },
 };
 
-const DAYS = [
-  ["第 1 天", "找到卡点", "3 问自查：词汇、信心，还是习惯。3 分钟。"],
-  ["第 2 天", "15 分钟例程", "听一段、跟说一句、问 3 个问题。每天同一个例程。"],
-  ["第 3 天", "5 句话，把英文回答接回中文", "别再说“说中文！”，给孩子一句能接的话。"],
-  ["第 4 天", "看动画的正确方法", "用 3 条标准选片，先听，跟说 3 个词，明天再用一个。"],
-  ["第 5 天", "10 个字，不是 50 个", "先部首，再词。每个字里都藏着一幅画。"],
-  ["第 6 天", "一个场景，10 个词", "晚饭或早上，选一个。一周都用同样的 10 个词。"],
-  ["第 7 天", "一页纸的一周计划", "下周照着同一个计划做，只换一个词，不换整个计划。"],
-];
 
 export default function StartPage() {
   const photo = asset(PHOTOS.welcome);
@@ -62,11 +54,7 @@ export default function StartPage() {
       <section>
         <h2>7 天启动包里有什么</h2>
         <p className="meta">每天 15 分钟，用家里本来就有的时间：饭桌、车上、睡前。不用另外报班，每天一小步。（中文版整理中）</p>
-        <ul className="lp-days">
-          {DAYS.map(([d, t, s]) => (
-            <li key={d}><span className="badge">{d}</span> <strong>{t}</strong><br />{s}</li>
-          ))}
-        </ul>
+        <WeekTimeline lang="zh" />
       </section>
 
       <AboutJing short photo={PHOTOS.about} />

@@ -16,7 +16,7 @@ const T = {
     email: "Email",
     wechat: "",
     sending: "Sending…",
-    err: "That didn't go through. Please try again in a minute.",
+    err: "Something went wrong. Please try again in a minute.",
   },
 };
 
@@ -59,10 +59,13 @@ export default function SignupForm({
         }),
       });
       const j = await r.json().catch(() => ({}));
-      if (!r.ok) throw new Error(j.error || t.err);
+      if (!r.ok) {
+        if (lang === "en") throw new Error(r.status === 400 ? "Please enter a valid email address." : t.err);
+        throw new Error(j.error || t.err);
+      }
       setState("done");
     } catch (err) {
-      setMsg(err instanceof Error ? err.message : t.err);
+      setMsg(err instanceof Error && !(lang === "en" && err.name === "TypeError") ? err.message : t.err);
       setState("error");
     }
   }

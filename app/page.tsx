@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AboutJing from "./_site/AboutJing";
+import { Icon, StuckPoints, TreeSystem, DailyMoments, PullQuote } from "./_site/Visuals";
 import { PHOTOS, asset } from "@/lib/site/assets";
 import { WORKSHOP } from "@/lib/site/config";
 
@@ -39,13 +40,11 @@ export default function HomePage() {
 
       {/* 2. Pain → 不必这样 */}
       <section className="lp-band lp-band--green">
-        <div className="lp-wrap lp-narrow lp-center">
-          <p className="lp-big">孩子听得懂你的每一句中文，回你的却是英文。<br />报了周末中文班，家里还是说不起来。</p>
+        <div className="lp-wrap lp-center">
+          <p className="lp-big">孩子听得懂你的每一句中文，回你的却是英文？</p>
           <p className="lp-big lp-big--accent">但它不必这样。</p>
-          <p>
-            孩子不是不肯说中文，多半是卡在了三个地方之一：<strong>词汇、信心、习惯</strong>。
-            先找到卡点，再做对第一步，中文就能在家里一天天长起来。
-          </p>
+          <p>孩子不是不肯说，多半是卡在了这三处之一：</p>
+          <StuckPoints />
         </div>
       </section>
 
@@ -56,18 +55,21 @@ export default function HomePage() {
           <h2 className="lp-h2 lp-center">三步，把中文带回家里的日常</h2>
           <div className="lp-grid3">
             <article className="lp-card2">
+              <span className="vz-card__icon"><Icon.target /></span>
               <span className="lp-step">第 1 步</span>
               <h3>免费 3 问自查</h3>
-              <p>3 个问题、3 分钟，看清孩子卡在词汇、信心还是习惯，拿到今晚就能试的第一步。</p>
+              <p>3 个问题、3 分钟，拿到今晚就能试的第一步。</p>
               <a href="/start" className="lp-link">开始自查 →</a>
             </article>
             <article className="lp-card2">
+              <span className="vz-card__icon"><Icon.clock /></span>
               <span className="lp-step">第 2 步</span>
               <h3>每天 15 分钟</h3>
-              <p>饭桌、车上、睡前——用家里本来就有的时间。同一个小例程，天天做，不用另外报班。</p>
+              <p>用家里本来就有的时间，不用另外报班。</p>
               <a href="/start" className="lp-link">看 7 天怎么做 →</a>
             </article>
             <article className="lp-card2 lp-card2--feature">
+              <span className="vz-card__icon"><Icon.chat /></span>
               <span className="lp-step">第 3 步</span>
               <h3>60 分钟直播工作坊</h3>
               <p>「{w.titleZh}」：现场诊断卡点、练饭桌 3 句话术、带走一周计划表。</p>
@@ -75,13 +77,17 @@ export default function HomePage() {
               <a href="/workshop" className="lp-link">加入等候名单 →</a>
             </article>
           </div>
+          <DailyMoments />
         </div>
       </section>
 
       {/* 4. About */}
       <section className="lp-band lp-band--white">
         <div className="lp-wrap">
-          <AboutJing />
+          <AboutJing short strip />
+          <div className="lp-prose" style={{ margin: "8px auto 0" }}>
+            <PullQuote by="晶晶">孩子学不会中文，很少是因为孩子不行，更多是因为家里缺少一套每天都能用起来的方法。</PullQuote>
+          </div>
         </div>
       </section>
 
@@ -90,12 +96,8 @@ export default function HomePage() {
         <div className="lp-wrap">
           <p className="lp-eyebrow lp-center">Tree Tree System</p>
           <h2 className="lp-h2 lp-center">测 → 练 → 读</h2>
-          <div className="lp-grid3">
-            <div className="lp-pillar"><span className="lp-pillar__n">测</span><h3>找到卡点</h3><p>词汇、信心，还是习惯。一个原因，一个第一步。</p></div>
-            <div className="lp-pillar"><span className="lp-pillar__n">练</span><h3>每天 15 分钟</h3><p>同一个例程，天天做。孩子回英文时，有话可以接回中文。</p></div>
-            <div className="lp-pillar"><span className="lp-pillar__n">读</span><h3>按顺序来</h3><p>听 → 说 → 拼音只是工具 → 汉字从部首开始 → 阅读。按程度排，不按年龄排。</p></div>
-          </div>
-        </div>
+          <TreeSystem />
+                </div>
       </section>
 
       {/* 6. Members */}

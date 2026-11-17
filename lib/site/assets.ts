@@ -13,7 +13,7 @@ export const PHOTOS = {
   welcome: "/brand/jing-welcome.webp",
   teaching: [
     { src: "/brand/teach-picnic.webp", alt: "和美国大学生的中文课野餐", altEn: "Chinese class picnic with American college students" },
-    { src: "/brand/teach-culture.webp", alt: "大学中国文化活动，晶晶穿旗袍和师生合影", altEn: "Jingjing in a qipao with a professor and students at a university Chinese culture event" },
+    { src: "/brand/teach-culture.webp", alt: "大学中国文化活动，晶晶穿旗袍和师生合影", altEn: "Jing in a qipao with a professor and students at a university Chinese culture event" },
     { src: "/brand/teach-papercut.webp", alt: "中文课上的剪纸活动", altEn: "Paper-cutting activity in Chinese class" },
   ],
 };

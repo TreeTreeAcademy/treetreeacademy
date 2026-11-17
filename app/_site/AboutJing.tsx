@@ -11,7 +11,7 @@ const ZH = [
 ];
 
 const EN = [
-  "I'm Jingjing.",
+  "I'm Jing — like jingle bell.",
   "I started as a Chinese language and literature teacher at a top high school in Wuhan, China, guiding students through the leap from high-school to university-level Chinese — not just for exams, but to think and express themselves in Chinese.",
   "In the U.S., I taught Chinese to American college students at a university in Ohio, and then kept teaching kids growing up here, from complete beginners to intermediate and advanced learners.",
   "Again and again I've watched a language grow in a person from nothing to something, and from something to fluent. And I've learned this: when kids don't pick up Chinese, it's rarely the child — it's usually that the family doesn't have a method they can use every day.",
@@ -54,10 +54,10 @@ export default function AboutJing({
   return (
     <section className="lp-about2" id="about">
       <div className="lp-about2__photo">
-        {src ? <img src={src} alt={zh ? "晶晶" : "Jingjing"} loading="lazy" decoding="async" /> : <Placeholder>照片</Placeholder>}
+        {src ? <img src={src} alt={zh ? "晶晶" : "Jing"} loading="lazy" decoding="async" /> : <Placeholder>照片</Placeholder>}
       </div>
       <div className="lp-about2__body">
-        <p className="lp-eyebrow">{zh ? "关于我" : "About Jingjing"}</p>
+        <p className="lp-eyebrow">{zh ? "关于我" : "About Jing"}</p>
         <h2 className="lp-h2">{paras[0]}</h2>
         {shown.slice(1).map((p, i) => <p key={i}>{p}</p>)}
       </div>

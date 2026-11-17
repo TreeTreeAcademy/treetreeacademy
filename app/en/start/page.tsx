@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import StartFlow from "../../_site/StartFlow";
+import { WeekTimeline } from "../../_site/Visuals";
 import Placeholder from "../../_site/Placeholder";
 import AboutJing from "../../_site/AboutJing";
 import { PHOTOS, asset } from "@/lib/site/assets";
@@ -8,19 +9,10 @@ import { STARTER_KIT_PDF } from "@/lib/site/config";
 export const metadata: Metadata = {
   title: { absolute: "Your child understands Mandarin but answers in English? Free 7-Day Starter Kit | Tree Tree Academy" },
   description:
-    "7 days, 15 minutes a day, at a time your family already has. Start with a 3-question check: vocabulary, confidence, or habit. Free, from Jingjing: former high-school Chinese teacher in Wuhan, Chinese teacher at an Ohio university, raising two bilingual kids.",
+    "7 days, 15 minutes a day, at a time your family already has. Start with a 3-question check: vocabulary, confidence, or habit. Free, from Jing: former high-school Chinese teacher in Wuhan, Chinese teacher at an Ohio university, raising two bilingual kids.",
   alternates: { canonical: "/en/start", languages: { "zh-CN": "/start", en: "/en/start" } },
 };
 
-const DAYS = [
-  ["Day 1", "Find the stuck place.", "The 3-question check: vocabulary, confidence, or habit. 3 minutes."],
-  ["Day 2", "The 15-minute routine.", "Listen, repeat one sentence, ask 3 questions. Same routine, every day."],
-  ["Day 3", "5 phrases that turn an English answer back into Mandarin.", "Give them a sentence instead of saying \u201cSpeak Chinese!\u201d"],
-  ["Day 4", "Watch a show the right way.", "Choose it with 3 checks, listen first, repeat 3 words, reuse one tomorrow."],
-  ["Day 5", "10 characters, not 50.", "Radicals first, then the word. Each one has a picture inside it."],
-  ["Day 6", "One scene, 10 words.", "Dinner or morning \u2014 pick one. Same 10 words, every day, for one week."],
-  ["Day 7", "Your week, on one page.", "Keep the same plan next week. Change one word, not the whole plan."],
-];
 
 export default function EnStartPage() {
   const photo = asset(PHOTOS.welcome);
@@ -44,11 +36,7 @@ export default function EnStartPage() {
       <div className="lp-wrap lp-body">
       <section>
         <h2>The 7 days</h2>
-        <ul className="lp-days">
-          {DAYS.map(([d, t, s]) => (
-            <li key={d}><span className="badge">{d}</span> <strong>{t}</strong> {s}</li>
-          ))}
-        </ul>
+        <WeekTimeline lang="en" />
       </section>
 
       <div className="lp-startgrid">
