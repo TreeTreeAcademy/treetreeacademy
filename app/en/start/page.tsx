@@ -72,7 +72,7 @@ export default function EnStartPage() {
         <p><Placeholder>these 3 steps only become true once the kit PDF is uploaded and an email service is connected</Placeholder></p>
       </section>
 
-      <AboutJing lang="en" strip />
+      <AboutJing lang="en" short strip />
 
       <section>
         <h2>FAQ</h2>

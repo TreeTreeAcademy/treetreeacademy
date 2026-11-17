@@ -1,25 +1,67 @@
 import Placeholder from "./Placeholder";
+import { Icon } from "./Visuals";
 import { PHOTOS, asset } from "@/lib/site/assets";
 
-const ZH = [
-  "我是晶晶。",
-  "我曾是武汉一所重点高中的语文老师，陪学生走过从高中到大学最关键的语言阶段——不只是应对考试，更是学会用中文思考、用中文表达。",
-  "后来我来到美国，在俄亥俄州的一所大学教本地大学生中文；之后又一直教在美国长大的孩子，从零基础入门，到中高级水平。",
-  "这些年，我一次次看到一门语言在一个人身上从无到有、从有到好。我也越来越确定：孩子学不会中文，很少是因为孩子不行，更多是因为家里缺少一套每天都能用起来的方法。",
-  "现在，我是两个双语孩子的妈妈。我在家里为他们搭起了一套双语体系，中文和英文一起长，到今天还在一天天进步。",
-  "树儿学院想做的，就是把我在课堂上和家里验证过的方法，变成普通家长也能上手的小步骤，让中文真正活在你家的日常里。",
-];
+// Jing's own About Me text (2026-11-17). Chinese is verbatim; English is her US-parent version.
+// Short version = first two paragraphs + one link, nothing added.
 
-const EN = [
-  "I'm Jing — like jingle bell.",
-  "I started as a Chinese language and literature teacher at a top high school in Wuhan, China, guiding students through the leap from high-school to university-level Chinese — not just for exams, but to think and express themselves in Chinese.",
-  "In the U.S., I taught Chinese to American college students at a university in Ohio, and then kept teaching kids growing up here, from complete beginners to intermediate and advanced learners.",
-  "Again and again I've watched a language grow in a person from nothing to something, and from something to fluent. And I've learned this: when kids don't pick up Chinese, it's rarely the child — it's usually that the family doesn't have a method they can use every day.",
-  "Today I'm raising two bilingual kids. I built a bilingual system at home, and both languages keep growing with them.",
-  "Tree Tree Academy turns what I've tested in the classroom and at home into small, doable steps for everyday parents, so Chinese can truly live in your family's daily life.",
-];
+type Lang = "zh" | "en";
 
-export function TeachStrip({ lang = "zh" }: { lang?: "zh" | "en" }) {
+const C = {
+  zh: {
+    eyebrow: "关于我",
+    hi: "我是晶晶。",
+    intro: [
+      <>在武汉，我做过重点高中的语文老师。那几年我陪学生走过高中到大学最要紧的一段路，也慢慢明白一件事：<strong>语文考得好，和一个人会不会用中文思考、用中文表达，是两回事。</strong></>,
+      <>后来到了美国。先在俄亥俄州的一所大学教美国学生中文，再后来，我的学生变成了一群在美国长大的孩子——有零基础，有中高级。</>,
+      <>现在，我是两个中英双语流利孩子的妈妈。中文在我们家不是一门课，是每天要说的话：饭桌上讲今天的事，睡前读一本书，超市里认几个字。我为两个孩子搭起的这套东西，到今天还在一天天调整。</>,
+    ],
+    methodH: "我怎么带孩子学中文",
+    method: [
+      { icon: "chat" as const, t: "一、先让他愿意开口，再让他说得对。", d: "孩子不怕说错，怕的是说了没人接。所以我先接住他的话，再一点点把他的句子说完整。" },
+      { icon: "dinner" as const, t: "二、中文不长在课本里，长在生活里。", d: "与其多上一节课，不如把中文放回饭桌、路上、睡前那十分钟。每天有一点点中文，比周末补两小时更管用。" },
+      { icon: "heart" as const, t: "三、我教的其实是家长。", d: "自己在家做了这些年，最深的体会是：孩子能不能坚持，取决于爸爸妈妈知不知道下一步该做什么。所以我给的是能落地的做法，不是一套理论。" },
+    ],
+    hardH: "我懂的那些为难",
+    hard: [<>孩子听得懂，就是不肯说；开口也是英文夹中文；你自己中文很好，却不知道怎么教自己的孩子；试过很多资源，最后都停在了“坚持不下去”。</>],
+    hardEnd: "这些我都经历过——不是作为老师，是作为妈妈。",
+    endH: "如果你也想让孩子在家用起中文",
+    end: [
+      <>我做的事很简单：把这套<strong>在家就能跑起来</strong>的方法，交到更多海外家庭手里。</>,
+      <>不用先想清楚要学到什么程度。欢迎来跟我聊聊你家孩子现在的情况，我帮你看一眼，下一步该从哪里开始。</>,
+    ],
+    cta: [["/workshop#waitlist", "加入工作坊等候名单"], ["/start", "先做 3 问自查"]],
+    more: ["/#about", "读我的完整故事 →"],
+    photoAlt: "晶晶",
+  },
+  en: {
+    eyebrow: "About Jing",
+    hi: "I'm Jing — like jingle bell.",
+    intro: [
+      <>Back in Wuhan, China, I taught Chinese language and literature at a top-ranked high school. Those years taught me something I still think about: <strong>acing Chinese class and actually thinking and speaking in Chinese are two very different things.</strong></>,
+      <>Then I moved to the US. I taught Chinese to American college students at a university in Ohio, and later to kids growing up here, from total beginners to intermediate and advanced.</>,
+      <>Today I&apos;m a mom of two kids who are fluent in both English and Chinese. In our house, Chinese isn&apos;t a subject. It&apos;s just how we talk: about our day at dinner, over a bedtime story, picking out characters at the grocery store. The system I built for them is still evolving, day by day.</>,
+    ],
+    methodH: "How I approach it",
+    method: [
+      { icon: "chat" as const, t: "1. Talking first, perfect later.", d: "Kids aren't afraid of getting it wrong. They stop when nobody picks up what they said. So I respond first, then help them finish the sentence." },
+      { icon: "dinner" as const, t: "2. Chinese lives in everyday life, not in a textbook.", d: "Ten minutes at dinner, in the car, or at bedtime beats a two-hour class on the weekend." },
+      { icon: "heart" as const, t: "3. I'm really coaching the parents.", d: "Whether a kid sticks with it comes down to whether mom and dad know what to do next. So you get practical steps, not theory." },
+    ],
+    hardH: "You don't have to be fluent to start",
+    hard: [
+      <>Maybe your child understands Chinese but always answers in English. Maybe Chinese is your partner&apos;s language, or your parents&apos;, and yours is rusty, or you don&apos;t speak it at all. Maybe you&apos;ve tried apps, classes and flashcards, and nothing stuck.</>,
+    ],
+    hardEnd: "That's exactly who I built this for. You don't need to speak Chinese well to make it part of your home. You'll get simple phrases with pinyin, routines that fit into the day you already have, and a clear next step.",
+    endH: "Start where your family is",
+    end: [<>You don&apos;t need to know where this ends up. Tell me where your child is right now, and I&apos;ll help you find the first step.</>],
+    cta: [["/en/workshop#waitlist", "Join the workshop waitlist"], ["/en/start", "Take the free 3-question check"]],
+    more: ["/en/workshop#about", "Read my full story →"],
+    photoAlt: "Jing",
+  },
+};
+
+export function TeachStrip({ lang = "zh" }: { lang?: Lang }) {
   const zh = lang === "zh";
   const teach = PHOTOS.teaching.filter((p) => asset(p.src));
   return (
@@ -46,22 +88,53 @@ export default function AboutJing({
   short = false,
   photo = PHOTOS.about,
   strip = !short,
-}: { lang?: "zh" | "en"; short?: boolean; photo?: string; strip?: boolean }) {
-  const zh = lang === "zh";
-  const paras = zh ? ZH : EN;
-  const shown = short ? [paras[0], paras[1], paras[2], paras[4]] : paras;
+}: { lang?: Lang; short?: boolean; photo?: string; strip?: boolean }) {
+  const c = C[lang];
   const src = asset(photo);
   return (
     <section className="lp-about2" id="about">
       <div className="lp-about2__photo">
-        {src ? <img src={src} alt={zh ? "晶晶" : "Jing"} loading="lazy" decoding="async" /> : <Placeholder>照片</Placeholder>}
+        {src ? <img src={src} alt={c.photoAlt} loading="lazy" decoding="async" /> : <Placeholder>照片</Placeholder>}
       </div>
       <div className="lp-about2__body">
-        <p className="lp-eyebrow">{zh ? "关于我" : "About Jing"}</p>
-        <h2 className="lp-h2">{paras[0]}</h2>
-        {shown.slice(1).map((p, i) => <p key={i}>{p}</p>)}
+        <p className="lp-eyebrow">{c.eyebrow}</p>
+        <h2 className="lp-h2">{c.hi}</h2>
+        {(short ? c.intro.slice(0, 2) : c.intro).map((p, i) => <p key={i}>{p}</p>)}
+        {short && <p><a className="lp-link" href={c.more[0]}>{c.more[1]}</a></p>}
       </div>
       {strip && <div className="lp-about2__strip"><TeachStrip lang={lang} /></div>}
+      {!short && (
+        <div className="lp-about2__more">
+          <h3 className="lp-about2__h">{c.methodH}</h3>
+          <div className="vz-cards vz-cards--3 ab-method">
+            {c.method.map((m) => {
+              const I = Icon[m.icon];
+              return (
+                <div className="vz-card" key={m.t}>
+                  <span className="vz-card__icon"><I /></span>
+                  <h3>{m.t}</h3>
+                  <p>{m.d}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="ab-hard">
+            <h3 className="lp-about2__h">{c.hardH}</h3>
+            {c.hard.map((p, i) => <p key={i}>{p}</p>)}
+            <p className="ab-hard__end">{c.hardEnd}</p>
+          </div>
+
+          <div className="ab-end">
+            <h3 className="lp-about2__h">{c.endH}</h3>
+            {c.end.map((p, i) => <p key={i}>{p}</p>)}
+            <div className="lp-ctas lp-ctas--center">
+              <a href={c.cta[0][0]} className="lp-btn lp-btn--primary">{c.cta[0][1]}</a>
+              <a href={c.cta[1][0]} className="lp-btn lp-btn--ghost">{c.cta[1][1]}</a>
+            </div>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

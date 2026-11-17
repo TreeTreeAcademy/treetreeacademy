@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import AboutJing from "./_site/AboutJing";
-import { Icon, StuckPoints, TreeSystem, DailyMoments, PullQuote } from "./_site/Visuals";
+import { Icon, StuckPoints, TreeSystem, DailyMoments } from "./_site/Visuals";
 import { PHOTOS, asset } from "@/lib/site/assets";
 import { WORKSHOP } from "@/lib/site/config";
 
@@ -84,10 +84,7 @@ export default function HomePage() {
       {/* 4. About */}
       <section className="lp-band lp-band--white">
         <div className="lp-wrap">
-          <AboutJing short strip />
-          <div className="lp-prose" style={{ margin: "8px auto 0" }}>
-            <PullQuote by="晶晶">孩子学不会中文，很少是因为孩子不行，更多是因为家里缺少一套每天都能用起来的方法。</PullQuote>
-          </div>
+          <AboutJing />
         </div>
       </section>
 

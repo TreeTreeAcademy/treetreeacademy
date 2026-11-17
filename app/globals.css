@@ -1097,3 +1097,18 @@ body:has(.en-section) > .site-footer { display: none; }
   .vz-moments__eq { display: none; }
   .vz-moment svg { width: 58px; height: 58px; }
 }
+/* About (Jing's 2026-11-17 story) */
+.lp-about2__more { grid-column: 1 / -1; }
+.lp-about2__h { font-size: clamp(1.3rem, 2.2vw, 1.75rem); color: var(--color-ink); text-align: center; margin: 40px 0 0; }
+.ab-method .vz-card h3 { font-size: 1.12rem; line-height: 1.45; }
+.ab-method .vz-card p { text-align: left; }
+.ab-hard { margin: 40px auto 0; max-width: 820px; background: #fff8dc; border-radius: 24px; padding: 28px 32px; border-left: 8px solid var(--color-gold); }
+.ab-hard .lp-about2__h { text-align: left; margin-top: 0; }
+.ab-hard p { margin: 12px 0 0; }
+.ab-hard__end { font-size: 1.2rem; font-weight: 800; color: var(--color-forest); }
+.ab-end { max-width: 820px; margin: 8px auto 0; text-align: center; }
+.ab-end p { margin: 12px 0 0; }
+@media (max-width: 760px) {
+  .ab-method .vz-card p { grid-column: 2; }
+  .ab-hard { padding: 20px; border-left-width: 6px; }
+}
