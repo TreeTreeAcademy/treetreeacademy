@@ -71,7 +71,7 @@ export default function HomePage() {
               <span className="lp-step">第 3 步</span>
               <h3>60 分钟直播工作坊</h3>
               <p>「{w.titleZh}」：现场诊断卡点、练饭桌 3 句话术、带走一周计划表。</p>
-              <p className="lp-price">{w.priceZh} / {w.priceEn}</p>
+              <p className="lp-price">{w.price}</p>
               <a href="/workshop" className="lp-link">加入等候名单 →</a>
             </article>
           </div>

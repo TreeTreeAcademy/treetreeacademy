@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 // Upstash 接近免费额度：每次提交只用 2 条命令（RPUSH + LTRIM），列表最多保留 1000 条。
 const KEY = "site:waitlist:v1";
 const MAX = 1000;
-const SOURCES = new Set(["start", "start-en", "workshop", "workshop-waitlist", "home"]);
+const SOURCES = new Set(["start", "start-en", "workshop", "workshop-waitlist", "workshop-waitlist-en", "home"]);
 const RESULTS = new Set(["vocab", "confidence", "habit", "none", ""]);
 
 const clip = (v: unknown, n: number) => (typeof v === "string" ? v.trim().slice(0, n) : "");

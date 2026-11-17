@@ -6,8 +6,8 @@ import { PHOTOS, asset } from "@/lib/site/assets";
 
 export const metadata: Metadata = {
   title: { absolute: `${WORKSHOP.titleZh}｜60 分钟直播工作坊 · 树儿学院` },
-  description: `孩子听得懂中文却不肯说？60 分钟直播工作坊（${WORKSHOP.priceZh} / ${WORKSHOP.priceEn}）：现场做 3 问诊断、练饭桌 3 句话术、带走一张一周计划表。现在开放等候名单。`,
-  alternates: { canonical: "/workshop" },
+  description: `孩子听得懂中文却不肯说？60 分钟直播工作坊（${WORKSHOP.price}）：现场做 3 问诊断、练饭桌 3 句话术、带走一张一周计划表。现在开放等候名单。`,
+  alternates: { canonical: "/workshop", languages: { "zh-CN": "/workshop", en: "/en/workshop" } },
 };
 
 function Waitlist({ id }: { id?: string }) {
@@ -38,12 +38,13 @@ export default function WorkshopPage() {
       <section className="lp-band lp-band--hero">
         <div className="lp-wrap lp-hero2">
           <div className="lp-hero2__text">
+            <p className="lp-small"><a href="/en/workshop" lang="en">English version →</a></p>
             <p className="lp-eyebrow">{w.durationMin} 分钟直播工作坊 · 测试期</p>
             <h1 className="lp-h1">{w.titleZh}</h1>
             <p className="lp-sub">
               先问你一个问题：你家孩子，是不是听得懂你说的每一句中文，回你的却全是英文？
             </p>
-            <p className="lp-price lp-price--big">{w.priceZh} <span>/ {w.priceEn}</span></p>
+            <p className="lp-price lp-price--big">{w.price}</p>
             <div className="lp-ctas">
               <a href="#waitlist" className="lp-btn lp-btn--primary">加入等候名单 Join the waitlist</a>
             </div>
@@ -125,7 +126,7 @@ export default function WorkshopPage() {
             <p className="lp-eyebrow lp-eyebrow--light">现在开放等候名单</p>
             <h2 className="lp-h2">孩子的中文，从你的下一句话开始</h2>
             <p>
-              这是一场测试期的工作坊，我想先认真带好第一批家庭。价格 <strong>{w.priceZh} / {w.priceEn}</strong>。
+              这是一场测试期的工作坊，我想先认真带好第一批家庭。价格 <strong>{w.price}</strong>。
               留下邮箱加入等候名单，开放报名时我第一时间通知你。
             </p>
           </div>

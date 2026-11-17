@@ -97,7 +97,8 @@ export default function EnStartPage() {
           <dd>Do today only. Do not do two days at once.</dd>
         </dl>
         <p className="meta">
-          This kit is the start, not the whole system. The next step is the Speak More Mandarin at Home camp: 4 weeks, one step a week, with live coaching. Details are on the camp page when enrollment opens.
+          This kit is the start, not the whole system. The next step is a 60-minute live workshop:{" "}
+          <a href="/en/workshop">Your kid understands Chinese but answers in English — here&apos;s your first step →</a>
         </p>
       </section>
     </div>

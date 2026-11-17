@@ -32,7 +32,7 @@ export function TeachStrip({ lang = "zh" }: { lang?: "zh" | "en" }) {
       </figcaption>
       {teach.length ? (
         <div className="lp-teach__row">
-          {teach.map((p) => <img key={p.src} src={p.src} alt={p.alt} loading="lazy" decoding="async" />)}
+          {teach.map((p) => <img key={p.src} src={p.src} alt={zh ? p.alt : p.altEn} loading="lazy" decoding="async" />)}
         </div>
       ) : (
         <Placeholder>3 张教学照片</Placeholder>
