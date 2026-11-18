@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { SocialLinks, EmailLink } from "../_site/Social";
+import { SocialLinks, ContactLink } from "../_site/Social";
 
 // English section (/en/*). The root layout's header/footer are Chinese; on /en pages they are hidden
 // with CSS (body:has(.en-section)) and this layout renders English chrome instead.
@@ -37,7 +37,7 @@ export default function EnLayout({ children }: { children: React.ReactNode }) {
             <p className="site-footer__h">Follow along</p>
             <SocialLinks lang="en" />
             <p className="site-footer__h" style={{ marginTop: "0.8rem" }}>Contact</p>
-            <p><EmailLink /></p>
+            <p><ContactLink lang="en" /></p>
           </div>
           <div>
             <p className="site-footer__h">Get started</p>

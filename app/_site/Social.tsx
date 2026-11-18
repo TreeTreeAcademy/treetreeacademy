@@ -1,33 +1,67 @@
-import { SOCIAL, CONTACT_EMAIL } from "@/lib/site/social";
+import { SOCIAL, contactHref, type Platform } from "@/lib/site/social";
+import { BRAND_PATHS } from "./brandIcons";
 import SphCopy from "./SphCopy";
 
-const S = { width: 22, height: 22, viewBox: "0 0 24 24", "aria-hidden": true, fill: "currentColor" };
-const ICONS: Record<string, React.ReactNode> = {
-  instagram: (<svg {...S}><path d="M12 7.3A4.7 4.7 0 1012 16.7 4.7 4.7 0 0012 7.3zm0 7.7a3 3 0 110-6 3 3 0 010 6zm4.9-7.9a1.1 1.1 0 11-2.2 0 1.1 1.1 0 012.2 0zM12 3.6c2.7 0 3 0 4.1.1 2.7.1 4 1.4 4.1 4.1.1 1.1.1 1.4.1 4.1s0 3-.1 4.1c-.1 2.7-1.4 4-4.1 4.1-1.1.1-1.4.1-4.1.1s-3 0-4.1-.1c-2.7-.1-4-1.4-4.1-4.1C3.7 15 3.6 14.7 3.6 12s0-3 .1-4.1C3.8 5.2 5.1 3.9 7.8 3.8 9 3.7 9.3 3.6 12 3.6zM12 2C9.3 2 8.9 2 7.8 2.1 4.1 2.3 2.3 4.1 2.1 7.8 2 8.9 2 9.3 2 12s0 3.1.1 4.2c.2 3.7 2 5.5 5.7 5.7 1.1.1 1.5.1 4.2.1s3.1 0 4.2-.1c3.7-.2 5.5-2 5.7-5.7.1-1.1.1-1.5.1-4.2s0-3.1-.1-4.2c-.2-3.7-2-5.5-5.7-5.7C15.1 2 14.7 2 12 2z" /></svg>),
-  youtube: (<svg {...S}><path d="M23 7.2a3 3 0 00-2.1-2.1C19 4.6 12 4.6 12 4.6s-7 0-8.9.5A3 3 0 001 7.2 31 31 0 00.5 12a31 31 0 00.5 4.8 3 3 0 002.1 2.1c1.9.5 8.9.5 8.9.5s7 0 8.9-.5a3 3 0 002.1-2.1 31 31 0 00.5-4.8 31 31 0 00-.5-4.8zM9.8 15.1V8.9L15.6 12z" /></svg>),
-  xhs: (<svg {...S}><rect x="2" y="2" width="20" height="20" rx="5" /><text x="12" y="15.6" textAnchor="middle" fontSize="8.5" fontWeight="700" fill="#fff" fontFamily="sans-serif">小红书</text></svg>),
-  mail: (<svg {...S}><path d="M3 5h18a1 1 0 011 1v12a1 1 0 01-1 1H3a1 1 0 01-1-1V6a1 1 0 011-1zm9 7.2L4 7.3V17h16V7.3zM5.2 7l6.8 4.2L18.8 7z" /></svg>),
+// Official brand colours.
+const COLOR: Record<Platform | "wechat", string> = {
+  instagram: "url(#ig-grad)",
+  youtube: "#FF0000",
+  facebook: "#0866FF",
+  tiktok: "#000000",
+  xiaohongshu: "#FF2442",
+  wechat: "#07C160",
 };
 
+export function BrandIcon({ kind, size = 22 }: { kind: Platform | "wechat"; size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      {kind === "instagram" && (
+        <defs>
+          <radialGradient id="ig-grad" cx="0.3" cy="1.07" r="1.2">
+            <stop offset="0" stopColor="#FFDD55" />
+            <stop offset="0.1" stopColor="#FFDD55" />
+            <stop offset="0.5" stopColor="#FF543E" />
+            <stop offset="1" stopColor="#C837AB" />
+          </radialGradient>
+        </defs>
+      )}
+      {kind === "xiaohongshu" ? (
+        // 小红书 app icon: white wordmark on the brand-red rounded square
+        <>
+          <rect width="24" height="24" rx="5.5" fill={COLOR.xiaohongshu} />
+          <path d={BRAND_PATHS.xiaohongshu} fill="#fff" transform="translate(1.2 1.2) scale(0.9)" />
+        </>
+      ) : (
+        <path d={BRAND_PATHS[kind]} fill={COLOR[kind]} />
+      )}
+    </svg>
+  );
+}
+
 export function SocialLinks({ lang = "zh", sph = lang === "zh" }: { lang?: "zh" | "en"; sph?: boolean }) {
+  const pre = lang === "en" ? "Tree Tree Academy on " : "晶晶的";
   return (
     <div className="soc">
       <ul className="soc-list">
         {SOCIAL[lang].map((s) => (
           <li key={s.href}>
-            <a href={s.href} target="_blank" rel="noopener noreferrer" aria-label={s.label} title={s.label} className="soc-link">
-              {ICONS[s.kind]}<span className="soc-text">{s.label}</span>
+            <a href={s.href} target="_blank" rel="noopener noreferrer" className="soc-btn"
+               aria-label={`${pre}${s.label}${lang === "en" ? " (opens in a new tab)" : "（新窗口打开）"}`}>
+              <BrandIcon kind={s.kind} /><span>{s.label}</span>
             </a>
           </li>
         ))}
       </ul>
-      {sph && <SphCopy />}
+      {sph && <SphCopy icon={<BrandIcon kind="wechat" />} />}
     </div>
   );
 }
 
-export function EmailLink({ label }: { label?: string }) {
+export function ContactLink({ lang = "zh" }: { lang?: "zh" | "en" }) {
   return (
-    <a href={`mailto:${CONTACT_EMAIL}`} className="soc-link soc-mail">{ICONS.mail}<span className="soc-text">{label ?? CONTACT_EMAIL}</span></a>
+    <a href={contactHref(lang)} className="soc-contact">
+      <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M4 4h16a2 2 0 012 2v10a2 2 0 01-2 2H8l-4 4V6a2 2 0 012-2z" opacity=".15"/><path d="M4 3h16a3 3 0 013 3v10a3 3 0 01-3 3H8.4L3 23V6a3 3 0 013-3zm0 2a1 1 0 00-1 1v12.2L7.6 17H20a1 1 0 001-1V6a1 1 0 00-1-1zm3 4h10v2H7zm0 4h7v2H7z"/></svg>
+      <span>{lang === "en" ? "Message Jing" : "给晶晶留言"}</span>
+    </a>
   );
 }

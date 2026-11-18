@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { SocialLinks, EmailLink } from "./_site/Social";
+import { SocialLinks, ContactLink } from "./_site/Social";
 
 export const metadata: Metadata = {
   title: {
@@ -66,7 +66,7 @@ export default function RootLayout({
               <p className="site-footer__h">关注我</p>
               <SocialLinks lang="zh" />
               <p className="site-footer__h" style={{ marginTop: "0.8rem" }}>联系我</p>
-              <p><EmailLink /></p>
+              <p><ContactLink lang="zh" /></p>
             </div>
             <div>
               <p className="site-footer__h">开始</p>

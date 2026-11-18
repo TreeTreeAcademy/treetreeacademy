@@ -21,6 +21,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${SITE_URL}/en/workshop`, lastModified: now, changeFrequency: "weekly", priority: 0.8,
       alternates: { languages: { "zh-CN": `${SITE_URL}/workshop`, en: `${SITE_URL}/en/workshop` } },
     },
+    {
+      url: `${SITE_URL}/contact`, lastModified: now, changeFrequency: "yearly", priority: 0.5,
+      alternates: { languages: { "zh-CN": `${SITE_URL}/contact`, en: `${SITE_URL}/en/contact` } },
+    },
+    {
+      url: `${SITE_URL}/en/contact`, lastModified: now, changeFrequency: "yearly", priority: 0.5,
+      alternates: { languages: { "zh-CN": `${SITE_URL}/contact`, en: `${SITE_URL}/en/contact` } },
+    },
   ];
   // /xiaoqun、/hanzi、/reader 需要登录，不进 sitemap
   return fixed;
