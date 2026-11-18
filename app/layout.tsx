@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import { SocialLinks, EmailLink } from "./_site/Social";
 
 export const metadata: Metadata = {
   title: {
@@ -62,6 +63,10 @@ export default function RootLayout({
             <div>
               <img src="/brand/logo-header.webp" alt="树儿学院 Tree Tree Academy" width={150} height={56} className="site-footer__logo" />
               <p>中文生命力：给海外华裔与混合家庭的中文传承方法。</p>
+              <p className="site-footer__h">关注我</p>
+              <SocialLinks lang="zh" />
+              <p className="site-footer__h" style={{ marginTop: "0.8rem" }}>联系我</p>
+              <p><EmailLink /></p>
             </div>
             <div>
               <p className="site-footer__h">开始</p>

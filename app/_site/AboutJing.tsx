@@ -1,6 +1,8 @@
 import Placeholder from "./Placeholder";
 import { Icon } from "./Visuals";
 import { PHOTOS, asset } from "@/lib/site/assets";
+import { mailto } from "@/lib/site/social";
+import { SocialLinks } from "./Social";
 
 // Jing's own About Me text (2026-11-17). Chinese is verbatim; English is her US-parent version.
 // Short version = first two paragraphs + one link, nothing added.
@@ -30,7 +32,9 @@ const C = {
       <>我做的事很简单：把这套<strong>在家就能跑起来</strong>的方法，交到更多海外家庭手里。</>,
       <>不用先想清楚要学到什么程度。欢迎来跟我聊聊你家孩子现在的情况，我帮你看一眼，下一步该从哪里开始。</>,
     ],
-    cta: [["/workshop#waitlist", "加入工作坊等候名单"], ["/start", "先做 3 问自查"]],
+    cta: [["mailto", "写信给晶晶"], ["/workshop#waitlist", "加入工作坊等候名单"]],
+    small: "我会定期一封封回复。",
+    follow: "关注我",
     more: ["/#about", "读我的完整故事 →"],
     photoAlt: "晶晶",
   },
@@ -55,7 +59,9 @@ const C = {
     hardEnd: "That's exactly who I built this for. You don't need to speak Chinese well to make it part of your home. You'll get simple phrases with pinyin, routines that fit into the day you already have, and a clear next step.",
     endH: "Start where your family is",
     end: [<>You don&apos;t need to know where this ends up. Tell me where your child is right now, and I&apos;ll help you find the first step.</>],
-    cta: [["/en/workshop#waitlist", "Join the workshop waitlist"], ["/en/start", "Take the free 3-question check"]],
+    cta: [["mailto", "Email Jing"], ["/en/workshop#waitlist", "Join the workshop waitlist"]],
+    small: "I read every message and reply personally.",
+    follow: "Follow along",
     more: ["/en/workshop#about", "Read my full story →"],
     photoAlt: "Jing",
   },
@@ -129,8 +135,13 @@ export default function AboutJing({
             <h3 className="lp-about2__h">{c.endH}</h3>
             {c.end.map((p, i) => <p key={i}>{p}</p>)}
             <div className="lp-ctas lp-ctas--center">
-              <a href={c.cta[0][0]} className="lp-btn lp-btn--primary">{c.cta[0][1]}</a>
+              <a href={mailto(lang)} className="lp-btn lp-btn--primary">{c.cta[0][1]}</a>
               <a href={c.cta[1][0]} className="lp-btn lp-btn--ghost">{c.cta[1][1]}</a>
+            </div>
+            <p className="ab-small">{c.small}</p>
+            <div className="ab-follow">
+              <p className="ab-follow__h">{c.follow}</p>
+              <SocialLinks lang={lang} />
             </div>
           </div>
         </div>

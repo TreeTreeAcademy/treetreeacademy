@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { SocialLinks, EmailLink } from "../_site/Social";
 
 // English section (/en/*). The root layout's header/footer are Chinese; on /en pages they are hidden
 // with CSS (body:has(.en-section)) and this layout renders English chrome instead.
@@ -33,6 +34,10 @@ export default function EnLayout({ children }: { children: React.ReactNode }) {
           <div>
             <img src="/brand/logo-header.webp" alt="Tree Tree Academy" width={150} height={56} className="site-footer__logo" />
             <p>Helping heritage-Chinese and mixed-heritage families keep Chinese alive at home.</p>
+            <p className="site-footer__h">Follow along</p>
+            <SocialLinks lang="en" />
+            <p className="site-footer__h" style={{ marginTop: "0.8rem" }}>Contact</p>
+            <p><EmailLink /></p>
           </div>
           <div>
             <p className="site-footer__h">Get started</p>
