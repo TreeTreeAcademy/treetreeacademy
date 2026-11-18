@@ -53,9 +53,8 @@ export default function EnStartPage() {
         <section>
           <h2>What happens after you sign up</h2>
           <ol>
-            <li>Click the confirmation link in your inbox, and the kit arrives by email — 7 pages, print it or keep it on your phone.</li>
+            <li>You&apos;ll get one confirmation email. Click the link inside and the kit downloads — 7 pages, print it or keep it on your phone.</li>
             <li>It stays in your email, so you never lose it.</li>
-            <li>For the next 7 days, one short email a day: that day&apos;s step, nothing more.</li>
           </ol>
         </section>
 
@@ -71,7 +70,7 @@ export default function EnStartPage() {
           <h2>FAQ</h2>
           <dl className="lp-faq">
             <dt>Is it really free?</dt>
-            <dd>Yes. The kit, the check, and the 7 emails are free.</dd>
+            <dd>Yes. The kit and the check are free.</dd>
             <dt>Do I need to speak Mandarin?</dt>
             <dd>The kit is written in English. The Chinese lines are demo sentences with pinyin — you say them slowly once, then at normal speed once.</dd>
             <dt>What if we miss a day?</dt>
