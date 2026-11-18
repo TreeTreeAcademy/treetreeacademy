@@ -1,29 +1,29 @@
 import type { Metadata } from "next";
 import StartFlow from "../_site/StartFlow";
 import { WeekTimeline } from "../_site/Visuals";
-import AboutJing from "../_site/AboutJing";
 import { PHOTOS, asset } from "@/lib/site/assets";
 
+// 文案：Jing 的 /start 中文版文案底稿（2026-11-18）。领取方式：邮箱（经 Kit 发送 PDF），不走微信。
 export const metadata: Metadata = {
-  title: { absolute: "孩子听得懂中文却不说？3 问免费自查｜树儿学院" },
+  title: { absolute: "免费领 7 天中文启动包：每天 15 分钟｜树儿学院" },
   description:
-    "孩子不是不肯说中文，是卡在词汇、信心、习惯其中一个。3 个问题、3 分钟，找到卡点和今晚就能试的第一步。海外华裔和混血家庭适用，免费。",
+    "你会说中文，不等于孩子能学会中文。7 天，每天 15 分钟，不用报班——就在吃饭、坐车、睡前。先做 3 问自查，再免费领启动包。",
   alternates: { canonical: "/start", languages: { "zh-CN": "/start", en: "/en/start" } },
 };
 
-
 export default function StartPage() {
   const photo = asset(PHOTOS.welcome);
+  const about = asset(PHOTOS.about);
   return (
     <div className="lp-page">
       <section className="lp-band lp-band--hero">
         <div className="lp-wrap lp-hero2">
           <div className="lp-hero2__text">
             <p className="lp-small"><a href="/en/start" lang="en">English version →</a></p>
-            <p className="lp-eyebrow">免费 · 3 分钟</p>
-            <h1 className="lp-h1 lp-h1--md">你会说中文，不等于孩子能学会中文</h1>
-            <p className="lp-sub">孩子不是不肯说中文，是卡在了词汇、信心、习惯其中一个地方。先用 3 个问题找到卡点，再做今晚就能试的第一步。</p>
-            <div className="lp-ctas"><a href="#check" className="lp-btn lp-btn--primary">{"开始 3 问自查"}</a></div>
+            <p className="lp-eyebrow">免费 · 7 天中文启动包</p>
+            <h1 className="lp-h1 lp-h1--md">你会说中文，不等于孩子能学会中文。</h1>
+            <p className="lp-sub">7 天，每天 15 分钟。不用报班，不用另外找时间——就在吃饭、坐车、睡前，家里本来就有的时间里。</p>
+            <div className="lp-ctas"><a href="#check" className="lp-btn lp-btn--primary">先测 3 分钟</a></div>
           </div>
           <div className="lp-hero2__photo">
             <div className="lp-hero2__disc" aria-hidden="true" />
@@ -32,48 +32,56 @@ export default function StartPage() {
         </div>
       </section>
       <div className="lp-wrap lp-body">
-      <div className="lp-startgrid">
-      <StartFlow
-        lang="zh"
-        form={{
-          title: "领取中文版 7 天启动包",
-          source: "start",
-          button: "免费领取",
-          smallPrint: "免费，不用绑卡，随时可以退订。",
-          showWechat: true,
-          success: (
-            <>
-              <p><strong>收到了，谢谢你！</strong></p>
-              <p>中文版 7 天启动包整理好后，会第一时间发到你的邮箱。</p>
-            </>
-          ),
-        }}
-      />
+        <section>
+          <h2>7 天</h2>
+          <WeekTimeline lang="zh" />
+        </section>
+
+        <div className="lp-startgrid">
+          <StartFlow
+            lang="zh"
+            form={{
+              title: "免费领 7 天中文启动包",
+              source: "start",
+              button: "发给我",
+              smallPrint: "免费。不用留卡。随时可以退订。",
+              success: <p><strong>请去邮箱点一下确认邮件，资料会发到你的邮箱。</strong></p>,
+            }}
+          />
+        </div>
+
+        <section>
+          <h2>领到之后会发生什么</h2>
+          <ol>
+            <li>去邮箱点一下确认邮件，7 页的启动包 PDF 就会发到你的邮箱，打印出来或存在手机上都行。</li>
+            <li>链接留在你的邮箱里，不会丢。</li>
+            <li>接下来 7 天，每天一封短邮件，只讲当天那一步。</li>
+            <li>7 天后，训练营报名开了会告诉你——先把这 7 天走完。</li>
+          </ol>
+        </section>
+
+        <section>
+          <h2>关于晶晶</h2>
+          <div className="st-about">
+            {about && <img src={about} alt="晶晶" width={96} height={96} loading="lazy" />}
+            <p>我是晶晶。在中国教过高中语文，后来在美国大学教中文。现在在美国带两个孩子，两个都中英文流利——我把家里真正在用的这套方法，一天一个真实场景，分享给你。 <a href="/#about">读我的完整故事 →</a></p>
+          </div>
+        </section>
+
+        <section>
+          <h2>常见问题</h2>
+          <dl className="lp-faq">
+            <dt>真的免费吗？</dt>
+            <dd>是的。启动包、自查表、7 天内容都免费。</dd>
+            <dt>我不会教孩子中文怎么办？</dt>
+            <dd>启动包是中文写的，示范句都带拼音，你先慢速说一遍，再正常说一遍就行。</dd>
+            <dt>漏了一天怎么办？</dt>
+            <dd>只做当天那天的，别一次补两天。</dd>
+          </dl>
+        </section>
+
+        <p className="st-next">这只是开始，不是整套系统。下一步是&ldquo;让孩子多说中文&rdquo;训练营：4 周，每周一步，有直播带着练。报名开了，训练营页上有详情。</p>
       </div>
-
-      <section>
-        <h2>7 天启动包里有什么</h2>
-        <p className="meta">每天 15 分钟，用家里本来就有的时间：饭桌、车上、睡前。不用另外报班，每天一小步。（中文版整理中）</p>
-        <WeekTimeline lang="zh" />
-      </section>
-
-      <AboutJing short photo={PHOTOS.about} />
-
-      <section>
-        <h2>常见问题</h2>
-        <dl className="lp-faq">
-          <dt>真的免费吗？</dt>
-          <dd>是的。自查表和 7 天启动包都免费，不用绑卡。</dd>
-          <dt>漏了一天怎么办？</dt>
-          <dd>只做今天的就好，不要两天的一起补。</dd>
-          <dt>做完自查，下一步是什么？</dt>
-          <dd>
-            自查和启动包是开始，不是全部。下一步是 60 分钟的直播工作坊：现场帮你定孩子的卡点和第一步。
-            <a href="/workshop">看看工作坊 →</a>
-          </dd>
-        </dl>
-      </section>
-    </div>
     </div>
   );
 }

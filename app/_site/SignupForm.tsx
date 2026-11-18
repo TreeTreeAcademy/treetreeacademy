@@ -5,16 +5,14 @@ type Lang = "zh" | "en";
 
 const T = {
   zh: {
-    name: "称呼（选填）",
+    name: "姓名（选填）",
     email: "邮箱 Email（必填）",
-    wechat: "微信号（选填）",
     sending: "提交中…",
     err: "提交没成功，请稍后再试。",
   },
   en: {
     name: "Name (optional)",
     email: "Email",
-    wechat: "",
     sending: "Sending…",
     err: "Something went wrong. Please try again in a minute.",
   },
@@ -27,7 +25,8 @@ export default function SignupForm({
   button,
   smallPrint,
   success,
-  showWechat = false,
+  kit = false,
+  compact = false,
 }: {
   lang?: Lang;
   source: string;
@@ -35,7 +34,10 @@ export default function SignupForm({
   button: string;
   smallPrint?: string;
   success: React.ReactNode;
-  showWechat?: boolean;
+  /** Send to Kit (7-day kit) via /api/kit-subscribe instead of the plain waitlist. */
+  kit?: boolean;
+  /** Email-only inline form (lead-magnet block). */
+  compact?: boolean;
 }) {
   const t = T[lang];
   const [state, setState] = useState<"idle" | "sending" | "done" | "error">("idle");
@@ -46,21 +48,23 @@ export default function SignupForm({
     const fd = new FormData(e.currentTarget);
     setState("sending");
     try {
-      const r = await fetch("/api/waitlist", {
+      const r = await fetch(kit ? "/api/kit-subscribe" : "/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: fd.get("name"),
           email: fd.get("email"),
-          wechat: fd.get("wechat") || "",
           website: fd.get("website") || "",
           source,
           result,
+          lang,
         }),
       });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) {
         if (lang === "en") throw new Error(r.status === 400 ? "Please enter a valid email address." : t.err);
+        if (j.error === "email") throw new Error("请填写正确的邮箱。");
+        if (kit) throw new Error(t.err);
         throw new Error(j.error || t.err);
       }
       setState("done");
@@ -72,6 +76,23 @@ export default function SignupForm({
 
   if (state === "done") return <div className="lp-success">{success}</div>;
 
+  if (compact) {
+    return (
+      <form className="lp-form kit-form" onSubmit={onSubmit}>
+        <div className="kit-form__row">
+          <input name="email" type="email" required autoComplete="email" inputMode="email" maxLength={120}
+                 placeholder={lang === "en" ? "Your email" : "你的邮箱"} aria-label={lang === "en" ? "Email" : "邮箱"} />
+          <button className="btn btn--primary lp-form__btn" disabled={state === "sending"}>
+            {state === "sending" ? t.sending : button}
+          </button>
+        </div>
+        <input name="website" tabIndex={-1} autoComplete="off" className="lp-hp" aria-hidden="true" />
+        {state === "error" && <p className="lp-form__err" role="alert">{msg || t.err}</p>}
+        {smallPrint && <p className="lp-form__small">{smallPrint}</p>}
+      </form>
+    );
+  }
+
   return (
     <form className="lp-form" onSubmit={onSubmit}>
       <label>
@@ -82,12 +103,6 @@ export default function SignupForm({
         <span>{t.email}</span>
         <input name="email" type="email" required autoComplete="email" inputMode="email" maxLength={120} />
       </label>
-      {showWechat && (
-        <label>
-          <span>{t.wechat}</span>
-          <input name="wechat" maxLength={60} />
-        </label>
-      )}
       {/* honeypot */}
       <input name="website" tabIndex={-1} autoComplete="off" className="lp-hp" aria-hidden="true" />
       <button className="btn btn--primary lp-form__btn" disabled={state === "sending"}>

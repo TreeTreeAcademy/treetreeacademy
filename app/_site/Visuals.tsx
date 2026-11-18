@@ -111,8 +111,25 @@ export function WorkshopAgenda({ lang = "zh" }: { lang?: L }) {
   );
 }
 
-const WEEK_ZH = ["找卡点", "15 分钟例程", "5 句接回中文", "看动画的方法", "10 个字·部首起", "一个场景 10 个词", "一页纸计划"];
-const WEEK_EN = ["Find the stuck place", "The 15-min routine", "5 turn-back phrases", "Watch a show right", "10 characters", "One scene, 10 words", "Your week, one page"];
+// 7-day lists from Jing's /start copy docs (2026-11-18), matching the finished kits.
+export const WEEK_ZH: [string, string][] = [
+  ["先测卡点", "3 个问题，3 分钟，知道孩子卡在词汇、信心还是习惯。"],
+  ["15 分钟日常", "听一句、跟一句、问三句。每天同一个流程。"],
+  ["5 句话，把英文答回中文", "孩子用英文答你的时候，别说“说中文！”，直接给他一句中文。"],
+  ["看剧的正确方法", "3 个标准选片，先听，再跟 3 个词，明天再用一次。"],
+  ["10 个字，不贪多", "先部首，再组词。每个字里都有图。"],
+  ["一个场景 10 个词", "晚饭或早上，选一个场景，同一周每天用这 10 个词。"],
+  ["一周计划一页纸", "下周照这个计划走，换一个词，不换整个计划。"],
+];
+export const WEEK_EN: [string, string][] = [
+  ["Find the stuck place", "The 3-question check: vocabulary, confidence, or habit. 3 minutes."],
+  ["The 15-minute routine", "Listen, repeat one sentence, ask 3 questions. Same routine, every day."],
+  ["5 phrases that turn an English answer back into Mandarin", "Give them a sentence instead of saying \"Speak Chinese!\""],
+  ["Watch a show the right way", "Choose it with 3 checks, listen first, repeat 3 words, reuse one tomorrow."],
+  ["10 characters, not 50", "Radicals first, then the word. Each one has a picture inside it."],
+  ["One scene, 10 words", "Dinner or morning — pick one. Same 10 words, every day, for one week."],
+  ["Your week, on one page", "Keep the same plan next week. Change one word, not the whole plan."],
+];
 
 export function WeekTimeline({ lang = "zh", title }: { lang?: L; title?: string }) {
   const zh = lang === "zh";
@@ -122,9 +139,9 @@ export function WeekTimeline({ lang = "zh", title }: { lang?: L; title?: string 
       {title && <p className="vz-week__title">{title}</p>}
       <ol className="vz-week__row">
         {days.map((d, i) => (
-          <li key={d} className="vz-week__day">
+          <li key={d[0]} className="vz-week__day">
             <span className="vz-week__dot">{zh ? `第${i + 1}天` : `Day ${i + 1}`}</span>
-            <span className="vz-week__label">{d}</span>
+            <span className="vz-week__label">{d[0]}<span className="vz-week__detail">{d[1]}</span></span>
           </li>
         ))}
       </ol>

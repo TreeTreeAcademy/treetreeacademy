@@ -16,4 +16,3 @@ export const WORKSHOP = {
 
 // 英文 Starter Kit PDF。放到 public/starter-kit.pdf 后改成 "/starter-kit.pdf"，
 // 提交表单后页面上就会出现下载按钮。
-export const STARTER_KIT_PDF: string | null = null; // TODO(Jing)：提供 7 页 PDF

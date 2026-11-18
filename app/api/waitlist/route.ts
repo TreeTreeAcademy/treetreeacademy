@@ -23,7 +23,6 @@ export async function POST(req: Request) {
     at: new Date().toISOString(),
     name: clip(b.name, 60),
     email,
-    wechat: clip(b.wechat, 60),
     source: SOURCES.has(source) ? source : "other",
     result: RESULTS.has(result) ? result : "",
   };
@@ -45,7 +44,7 @@ export async function GET(req: Request) {
   const raw = ((await kv(["LRANGE", KEY, 0, -1])) as string[]) || [];
   const rows = raw.flatMap((x) => { try { return [JSON.parse(x)]; } catch { return []; } });
   if (new URL(req.url).searchParams.get("format") === "csv") {
-    const cols = ["at", "source", "result", "name", "email", "wechat"];
+    const cols = ["at", "source", "result", "name", "email"];
     const esc = (v: unknown) => `"${String(v ?? "").replace(/"/g, '""')}"`;
     const csv = [cols.join(","), ...rows.map((r) => cols.map((c) => esc(r[c])).join(","))].join("\n");
     return new Response("\ufeff" + csv, {

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import AboutJing from "./_site/AboutJing";
+import KitBlock from "./_site/KitBlock";
 import { Icon, StuckPoints, TreeSystem, DailyMoments } from "./_site/Visuals";
 import { PHOTOS, asset } from "@/lib/site/assets";
 import { WORKSHOP } from "@/lib/site/config";
@@ -37,6 +38,9 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* 1b. 7 天启动包（Kit） */}
+      <KitBlock lang="zh" source="kit-home" />
 
       {/* 2. Pain → 不必这样 */}
       <section className="lp-band lp-band--green">

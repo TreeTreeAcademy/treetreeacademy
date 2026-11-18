@@ -8,25 +8,27 @@ type Result = "vocab" | "confidence" | "habit" | "none";
 
 const COPY = {
   zh: {
-    intro: "先做自查，3 分钟，就知道从哪一步开始。",
+    intro: "先测 3 分钟，知道孩子卡在哪，再领启动包。",
+    rule: "怎么看结果：第 1 题答“不能”= 词汇，哪怕第 2、3 题也是。第 1 题能 + 第 2 题会停 = 信心。第 1 题能 + 第 2 题不会停 + 第 3 题还是英文 = 习惯。",
     yes: "是",
     no: "不是",
     qs: [
-      ["词汇", "孩子不用帮忙，能自己用中文说出 10 个日常的东西吗？比如：水、饭、鞋子、累。"],
-      ["信心", "孩子一说错，就停下来不说了吗？"],
-      ["习惯", "你说中文，孩子还是回你英文吗？"],
+      ["词汇", "孩子能不用帮忙，用中文说出 10 个日常的东西吗？水、饭、鞋子、累了。"],
+      ["信心", "孩子说错了，会停下来不敢说了吗？"],
+      ["习惯", "你说中文，孩子还是用英文答你吗？"],
     ],
     see: "看结果",
     results: {
-      vocab: ["卡在：词汇", "孩子听得懂的，比能说出来的多。", "第一步：只教一个场景的 10 个词。今晚就试一句：我要喝水。"],
-      confidence: ["卡在：信心", "孩子会这些词，但怕说错。", "第一步：先回应孩子想说的意思，再用对的说法说一遍，只说一遍。一次只纠一个音。"],
-      habit: ["卡在：习惯", "孩子会说，但在家说英文更快。", "第一步：固定一个说中文的时间，比如晚饭。每顿晚饭，问一个问题。"],
+      vocab: ["卡在：词汇", "孩子听得懂的比会说的多。", "第一步：只教一个场景的 10 个词。今晚就试一句：我要喝水。"],
+      confidence: ["卡在：信心", "孩子会说，但怕说错。", "第一步：先接住他想说的意思，再用正确的说法说一遍，只纠一个音。"],
+      habit: ["卡在：习惯", "孩子会说，但家里英文更快。", "第一步：固定一个中文时间，比如晚饭，一顿饭只问一个问题。"],
       none: ["这三处都没明显卡住", "", "【待 Jing 填写：三题都没卡住时给家长的一句话和下一步】"],
     } as Record<Result, [string, string, string]>,
-    close: "一个原因，一个第一步。就从这里开始。",
+    close: "一个卡点，一个第一步。这就是从哪开始。",
   },
   en: {
     intro: "Take the check first — it takes 3 minutes, and it tells you which day to start with.",
+    rule: "How to read your answer: No on Question 1 = Vocabulary, even if you also said Yes to 2 or 3. Yes on 1, Yes on 2 = Confidence. Yes on 1, No on 2, Yes on 3 = Habit.",
     yes: "Yes",
     no: "No",
     qs: [
@@ -58,7 +60,7 @@ export default function StartFlow({
   form,
 }: {
   lang: Lang;
-  form: { source: string; button: string; smallPrint: string; success: React.ReactNode; showWechat?: boolean; title: string };
+  form: { source: string; button: string; smallPrint: string; success: React.ReactNode; title: string };
 }) {
   const c = COPY[lang];
   const [ans, setAns] = useState<Ans[]>([null, null, null]);
@@ -90,6 +92,7 @@ export default function StartFlow({
             </li>
           ))}
         </ol>
+        <p className="lp-check__rule">{c.rule}</p>
         <button type="button" className="btn btn--primary" disabled={!done} onClick={() => setShown(true)}>
           {c.see}
         </button>
@@ -112,7 +115,7 @@ export default function StartFlow({
           button={form.button}
           smallPrint={form.smallPrint}
           success={form.success}
-          showWechat={form.showWechat}
+          kit
         />
       </section>
     </>

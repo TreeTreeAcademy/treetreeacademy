@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import SignupForm from "../../_site/SignupForm";
+import KitBlock from "../../_site/KitBlock";
 import AboutJing from "../../_site/AboutJing";
 import { StuckPoints, WorkshopAgenda, DailyMoments, PullQuote } from "../../_site/Visuals";
 import { WORKSHOP } from "@/lib/site/config";
@@ -32,6 +33,8 @@ export default function EnWorkshopPage() {
           </div>
         </div>
       </section>
+
+      <KitBlock lang="en" source="kit-workshop-en" />
 
       <section className="lp-band lp-band--white">
         <div className="lp-wrap lp-prose">

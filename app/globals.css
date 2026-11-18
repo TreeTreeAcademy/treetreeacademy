@@ -1135,3 +1135,48 @@ body:has(.en-section) > .site-footer { display: none; }
 .ct-follow { align-items: flex-start; }
 .ct-follow .soc { align-items: flex-start; }
 .ct-follow .soc-list { justify-content: flex-start; }
+/* 7-day kit lead magnet */
+.kit-band { background: linear-gradient(180deg, #f3fadf 0%, #fffaf0 100%); }
+.kit { display: grid; grid-template-columns: 0.9fr 1.1fr; gap: 64px; align-items: center; }
+.kit__mock { position: relative; max-width: 380px; margin: 0 auto; width: 100%; aspect-ratio: 1 / 1; }
+.kit__cover { padding-right: 84px !important; }
+@media (max-width: 860px) { .kit__cover { padding-right: 60px !important; } .kit__mock { aspect-ratio: auto; } .kit__paper:not(.kit__paper--back) { position: relative; } .kit__cover { overflow: visible; } }
+.kit__paper { position: absolute; inset: 0; background: #fff; border-radius: 18px; box-shadow: 0 18px 40px #02420a22; padding: 26px; display: flex; flex-direction: column; gap: 18px; transform: rotate(-3deg); }
+.kit__paper--back { background: var(--color-gold); transform: rotate(4deg) translate(14px, 8px); box-shadow: none; }
+.kit__cover { background: var(--color-forest); color: #fff; border-radius: 12px; padding: 22px; display: flex; flex-direction: column; gap: 2px; position: relative; overflow: hidden; }
+.kit__cover b { font-size: 1.7rem; line-height: 1.15; }
+.kit__cover span:last-child { opacity: .85; margin-top: 6px; }
+.kit__leaf { position: absolute; right: 10px; bottom: 6px; width: 64px; height: 64px; background: #fff; border-radius: 50%; display: grid; place-items: center; }
+.kit__leaf svg { width: 48px; height: 48px; }
+.kit__days { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+.kit__days li { background: #f3fadf; border-left: 4px solid var(--color-lime); border-radius: 6px; padding: 6px 10px; font-weight: 600; font-size: .9rem; color: var(--color-ink); }
+.kit__days li:last-child { grid-column: span 2; background: #fff6d6; border-color: var(--color-gold); }
+.kit__pts { list-style: none; padding: 0; margin: 20px 0 24px; display: flex; flex-direction: column; gap: 14px; }
+.kit__pts li { display: flex; gap: 14px; align-items: flex-start; line-height: 1.5; }
+.kit__ic { flex: 0 0 44px; width: 44px; height: 44px; }
+.kit__ic svg { width: 44px; height: 44px; }
+.kit-form__row { display: flex; gap: 10px; }
+.kit-form__row input { flex: 1; min-width: 0; font: inherit; padding: 12px 16px; min-height: 52px; border: 1px solid var(--color-border); border-radius: 999px; background: #fff; }
+.kit-form__row .lp-form__btn { width: auto; min-height: 52px; padding: 0 28px; border-radius: 999px; white-space: nowrap; }
+@media (max-width: 860px) {
+  .kit { grid-template-columns: 1fr; gap: 32px; }
+  .kit__mock { max-width: 240px; order: -1; }
+  .kit__paper { padding: 16px; gap: 10px; }
+  .kit__cover { padding: 14px; } .kit__cover b { font-size: 1.2rem; }
+  .kit__leaf { width: 44px; height: 44px; } .kit__leaf svg { width: 32px; height: 32px; }
+  .kit__days li { font-size: .75rem; padding: 3px 8px; }
+  .kit-form__row { flex-direction: column; }
+  .kit-form__row .lp-form__btn { width: 100%; }
+}
+.kit__cover, .kit__days { flex-shrink: 0; }
+.vz-week__detail { display: block; font-weight: 400; font-size: .85rem; color: var(--color-text-muted); margin-top: 4px; line-height: 1.5; }
+.lp-check__rule { font-size: .88rem; color: var(--color-text-muted); margin: 8px 0 16px; }
+.st-about { display: flex; gap: 20px; align-items: center; background: #fff; border-radius: 20px; padding: 20px; }
+.st-about img { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; flex: 0 0 96px; }
+.st-about p { margin: 0; }
+.st-next { background: #fff6d6; border-radius: 14px; padding: 14px 18px; }
+.kit__days li small { display: block; font-size: .7rem; font-weight: 700; color: var(--color-forest); }
+@media (max-width: 860px) { .st-about { flex-direction: column; text-align: center; } }
+.kit__mock { aspect-ratio: auto; }
+.kit__paper:not(.kit__paper--back) { position: relative; }
+.kit__days li { font-size: .82rem; line-height: 1.35; }
