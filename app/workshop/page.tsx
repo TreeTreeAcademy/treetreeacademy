@@ -7,7 +7,7 @@ import { PHOTOS, asset } from "@/lib/site/assets";
 
 export const metadata: Metadata = {
   title: { absolute: `${WORKSHOP.titleZh}｜60 分钟直播工作坊 · 树儿学院` },
-  description: `孩子听得懂中文却不肯说？60 分钟直播工作坊（${WORKSHOP.price}）：现场做 3 问诊断、练饭桌 3 句话术、带走一张一周计划表。现在开放等候名单。`,
+  description: `孩子听得懂中文却不肯说？60 分钟直播工作坊（${WORKSHOP.price}）：现场诊断卡点、练饭桌 3 句话术、带走一张一周计划表。现在开放等候名单。`,
   alternates: { canonical: "/workshop", languages: { "zh-CN": "/workshop", en: "/en/workshop" } },
 };
 
@@ -99,7 +99,7 @@ export default function WorkshopPage() {
               source="workshop-waitlist"
               button="加入等候名单 Join the waitlist"
               smallPrint="只用来通知工作坊开放报名，不发广告，随时可以退订。"
-              success={<><p><strong>你已经在等候名单上了，谢谢你！</strong></p><p>开放报名时，我会第一时间发邮件通知你。</p><p>等的这几天，可以先 <a href="/start">花 3 分钟做个自查 →</a></p></>}
+              success={<><p><strong>你已经在等候名单上了，谢谢你！</strong></p><p>开放报名时，我会第一时间发邮件通知你。</p><p>等的这几天，可以先 <a href="/start">免费领 7 天启动包 →</a></p></>}
             />
           </div>
         </div>

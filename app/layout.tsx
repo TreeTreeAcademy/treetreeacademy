@@ -49,7 +49,7 @@ export default function RootLayout({
               />
             </a>
             <nav className="site-nav" aria-label="主导航">
-              <a href="/start">免费自查</a>
+              <a href="/start">免费启动包</a>
               <a href="/workshop">工作坊</a>
               <a href="/xiaoqun" title="需要登录">小群姐姐<span className="nav-lock" aria-label="需要登录">🔒</span></a>
               <a href="/hanzi" title="需要登录">汉字学习<span className="nav-lock" aria-label="需要登录">🔒</span></a>
@@ -70,7 +70,7 @@ export default function RootLayout({
             </div>
             <div>
               <p className="site-footer__h">开始</p>
-              <p><a href="/start">免费 3 问自查</a></p>
+              <p><a href="/start">免费 7 天启动包</a></p>
               <p><a href="/en/start">Free 7-Day Starter Kit (EN)</a></p>
               <p><a href="/workshop">直播工作坊 · 等候名单</a></p>
             </div>

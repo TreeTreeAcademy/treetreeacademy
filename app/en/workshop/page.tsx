@@ -93,7 +93,7 @@ export default function EnWorkshopPage() {
               source="workshop-waitlist-en"
               button="Join the waitlist"
               smallPrint="We'll only email you about the workshop. Unsubscribe anytime."
-              success={<><p><strong>You&apos;re on the waitlist. Thank you!</strong></p><p>You&apos;ll be the first to hear when registration opens.</p><p>In the meantime, <a href="/en/start">take the free 3-minute check →</a></p></>}
+              success={<><p><strong>You&apos;re on the waitlist. Thank you!</strong></p><p>You&apos;ll be the first to hear when registration opens.</p><p>In the meantime, <a href="/en/start">get the free 7-Day Starter Kit →</a></p></>}
             />
           </div>
         </div>

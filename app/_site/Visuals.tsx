@@ -103,7 +103,7 @@ export function WorkshopAgenda({ lang = "zh" }: { lang?: L }) {
   return (
     <FlowSteps
       steps={[
-        { icon: "target", tag: zh ? "现场诊断" : "Diagnose", title: zh ? "3 问诊断" : "The 3-question check", text: zh ? "看清卡点，定下第一步" : "See where your child is stuck and pick a first step" },
+        { icon: "target", tag: zh ? "现场诊断" : "Diagnose", title: zh ? "找到卡点" : "Find the stuck place", text: zh ? "看清卡点，定下第一步" : "See where your child is stuck and pick a first step" },
         { icon: "chat", tag: zh ? "现场练习" : "Practice", title: zh ? "饭桌 3 句话术" : "3 dinner-table phrases", text: zh ? "孩子回英文时，怎么接回中文" : "What to say when they answer in English" },
         { icon: "calendar", tag: zh ? "带走" : "Take home", title: zh ? "一周计划表" : "Your one-week plan", text: zh ? "每天 15 分钟，写好带走" : "15 minutes a day, filled in before you leave" },
       ]}

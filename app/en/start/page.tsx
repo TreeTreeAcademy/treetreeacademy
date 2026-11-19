@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import StartFlow from "../../_site/StartFlow";
+import SignupForm from "../../_site/SignupForm";
 import { WeekTimeline } from "../../_site/Visuals";
 import { PHOTOS, asset } from "@/lib/site/assets";
 
@@ -7,7 +7,7 @@ import { PHOTOS, asset } from "@/lib/site/assets";
 export const metadata: Metadata = {
   title: { absolute: "Your child understands Mandarin but answers in English? Free 7-Day Starter Kit | Tree Tree Academy" },
   description:
-    "7 days. 15 minutes a day. At a time your family already has — dinner, the car, bedtime. Start with the free 3-question check, then get the 7-Day Starter Kit by email.",
+    "7 days. 15 minutes a day. At a time your family already has — dinner, the car, bedtime. Get the free 7-Day Starter Kit by email.",
   alternates: { canonical: "/en/start", languages: { "zh-CN": "/start", en: "/en/start" } },
 };
 
@@ -23,7 +23,7 @@ export default function EnStartPage() {
             <p className="lp-eyebrow">Free 7-Day Starter Kit</p>
             <h1 className="lp-h1 lp-h1--md">Your child understands everything you say in Mandarin. But they answer in English.</h1>
             <p className="lp-sub">7 days. 15 minutes a day. At a time your family already has — dinner, the car, bedtime. No extra lessons. One small step a day.</p>
-            <div className="lp-ctas"><a href="#check" className="lp-btn lp-btn--primary">Take the 3-question check</a></div>
+            <div className="lp-ctas"><a href="#form" className="lp-btn lp-btn--primary">Send me the kit</a></div>
           </div>
           <div className="lp-hero2__photo">
             <div className="lp-hero2__disc" aria-hidden="true" />
@@ -37,18 +37,17 @@ export default function EnStartPage() {
           <WeekTimeline lang="en" />
         </section>
 
-        <div className="lp-startgrid">
-          <StartFlow
+        <section className="lp-box st-form" id="form">
+          <h2>Get the free 7-Day Starter Kit</h2>
+          <SignupForm
             lang="en"
-            form={{
-              title: "Get the free 7-Day Starter Kit",
-              source: "start-en",
-              button: "Send me the kit",
-              smallPrint: "Free. No card needed. Unsubscribe anytime.",
-              success: <p><strong>Check your inbox and click the confirmation link — the kit will come to you by email.</strong></p>,
-            }}
+            kit
+            source="start-en"
+            button="Send me the kit"
+            smallPrint="Free. No card needed. Unsubscribe anytime."
+            success={<p><strong>Check your inbox and click the confirmation link — the kit will come to you by email.</strong></p>}
           />
-        </div>
+        </section>
 
         <section>
           <h2>What happens after you sign up</h2>
@@ -70,7 +69,7 @@ export default function EnStartPage() {
           <h2>FAQ</h2>
           <dl className="lp-faq">
             <dt>Is it really free?</dt>
-            <dd>Yes. The kit and the check are free.</dd>
+            <dd>Yes. The kit is free.</dd>
             <dt>Do I need to speak Mandarin?</dt>
             <dd>The kit is written in English. The Chinese lines are demo sentences with pinyin — you say them slowly once, then at normal speed once.</dd>
             <dt>What if we miss a day?</dt>

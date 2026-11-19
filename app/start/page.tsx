@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import StartFlow from "../_site/StartFlow";
+import SignupForm from "../_site/SignupForm";
 import { WeekTimeline } from "../_site/Visuals";
 import { PHOTOS, asset } from "@/lib/site/assets";
 
@@ -7,7 +7,7 @@ import { PHOTOS, asset } from "@/lib/site/assets";
 export const metadata: Metadata = {
   title: { absolute: "免费领 7 天中文启动包：每天 15 分钟｜树儿学院" },
   description:
-    "你会说中文，不等于孩子能学会中文。7 天，每天 15 分钟，不用报班——就在吃饭、坐车、睡前。先做 3 问自查，再免费领启动包。",
+    "你会说中文，不等于孩子能学会中文。7 天，每天 15 分钟，不用报班——就在吃饭、坐车、睡前。用邮箱免费领启动包。",
   alternates: { canonical: "/start", languages: { "zh-CN": "/start", en: "/en/start" } },
 };
 
@@ -23,7 +23,7 @@ export default function StartPage() {
             <p className="lp-eyebrow">免费 · 7 天中文启动包</p>
             <h1 className="lp-h1 lp-h1--md">你会说中文，不等于孩子能学会中文。</h1>
             <p className="lp-sub">7 天，每天 15 分钟。不用报班，不用另外找时间——就在吃饭、坐车、睡前，家里本来就有的时间里。</p>
-            <div className="lp-ctas"><a href="#check" className="lp-btn lp-btn--primary">先测 3 分钟</a></div>
+            <div className="lp-ctas"><a href="#form" className="lp-btn lp-btn--primary">免费领取</a></div>
           </div>
           <div className="lp-hero2__photo">
             <div className="lp-hero2__disc" aria-hidden="true" />
@@ -37,18 +37,17 @@ export default function StartPage() {
           <WeekTimeline lang="zh" />
         </section>
 
-        <div className="lp-startgrid">
-          <StartFlow
+        <section className="lp-box st-form" id="form">
+          <h2>免费领 7 天中文启动包</h2>
+          <SignupForm
             lang="zh"
-            form={{
-              title: "免费领 7 天中文启动包",
-              source: "start",
-              button: "发给我",
-              smallPrint: "免费。不用留卡。随时可以退订。",
-              success: <p><strong>请去邮箱点一下确认邮件，资料会发到你的邮箱。</strong></p>,
-            }}
+            kit
+            source="start"
+            button="发给我"
+            smallPrint="免费。不用留卡。随时可以退订。"
+            success={<p><strong>请去邮箱点一下确认邮件，资料会发到你的邮箱。</strong></p>}
           />
-        </div>
+        </section>
 
         <section>
           <h2>领到之后会发生什么</h2>
@@ -71,7 +70,7 @@ export default function StartPage() {
           <h2>常见问题</h2>
           <dl className="lp-faq">
             <dt>真的免费吗？</dt>
-            <dd>是的。启动包、自查表、7 天内容都免费。</dd>
+            <dd>是的。启动包和 7 天内容都免费。</dd>
             <dt>我不会教孩子中文怎么办？</dt>
             <dd>启动包是中文写的，示范句都带拼音，你先慢速说一遍，再正常说一遍就行。</dd>
             <dt>漏了一天怎么办？</dt>

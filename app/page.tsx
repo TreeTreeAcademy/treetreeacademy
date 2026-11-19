@@ -8,7 +8,7 @@ import { WORKSHOP } from "@/lib/site/config";
 export const metadata: Metadata = {
   title: { absolute: "你会说中文，不等于孩子能学会中文｜中文生命力 · 树儿学院 Tree Tree Academy" },
   description:
-    "孩子听得懂中文，却总回英文？武汉重点高中前语文老师、美国俄亥俄州大学中文老师晶晶，带海外华裔和混合家庭先找到孩子卡在哪：词汇、信心还是习惯，再给你今晚就能试的第一步。免费 3 问自查。",
+    "孩子听得懂中文，却总回英文？武汉重点高中前语文老师、美国俄亥俄州大学中文老师晶晶，带海外华裔和混合家庭先找到孩子卡在哪：词汇、信心还是习惯，再给你每天 15 分钟、用得起来的方法。免费领 7 天启动包。",
   alternates: { canonical: "/" },
 };
 
@@ -27,7 +27,7 @@ export default function HomePage() {
               我帮海外华裔和混合家庭的父母，找到孩子说中文卡在哪一步，再给你一套每天 15 分钟、用得起来的方法。
             </p>
             <div className="lp-ctas">
-              <a href="/start" className="lp-btn lp-btn--primary">免费做 3 问自查</a>
+              <a href="#kit" className="lp-btn lp-btn--primary">免费领 7 天启动包</a>
               <a href="/workshop" className="lp-btn lp-btn--ghost">加入工作坊等候名单</a>
             </div>
             <p className="lp-small"><a href="/en/start" lang="en">English: free 7-Day Starter Kit →</a></p>
@@ -61,9 +61,9 @@ export default function HomePage() {
             <article className="lp-card2">
               <span className="vz-card__icon"><Icon.target /></span>
               <span className="lp-step">第 1 步</span>
-              <h3>免费 3 问自查</h3>
-              <p>3 个问题、3 分钟，拿到今晚就能试的第一步。</p>
-              <a href="/start" className="lp-link">开始自查 →</a>
+              <h3>免费 7 天启动包</h3>
+              <p>7 天，每天 15 分钟，用饭桌、车上、睡前的时间。</p>
+              <a href="/start" className="lp-link">免费领取 →</a>
             </article>
             <article className="lp-card2">
               <span className="vz-card__icon"><Icon.clock /></span>
@@ -117,10 +117,10 @@ export default function HomePage() {
       {/* 7. Final CTA */}
       <section className="lp-band lp-band--yellow">
         <div className="lp-wrap lp-narrow lp-center">
-          <h2 className="lp-h2">先花 3 分钟，找到孩子的卡点</h2>
-          <p>一个原因，一个第一步。就从今晚的饭桌开始。</p>
+          <h2 className="lp-h2">先从 7 天启动包开始</h2>
+          <p>每天 15 分钟，就从今晚的饭桌开始。</p>
           <div className="lp-ctas lp-ctas--center">
-            <a href="/start" className="lp-btn lp-btn--primary">免费做 3 问自查</a>
+            <a href="/start" className="lp-btn lp-btn--primary">免费领 7 天启动包</a>
             <a href="/workshop" className="lp-btn lp-btn--ghost">工作坊等候名单</a>
           </div>
         </div>
