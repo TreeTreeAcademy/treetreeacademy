@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { SocialLinks, ContactLink } from "../_site/Social";
+import { LangSwitch, FooterLangPair } from "../_site/LangSwitch";
 
 // English section (/en/*). The root layout's header/footer are Chinese; on /en pages they are hidden
 // with CSS (body:has(.en-section)) and this layout renders English chrome instead.
@@ -25,7 +26,7 @@ export default function EnLayout({ children }: { children: React.ReactNode }) {
             <a href="/en/start">Free Starter Kit</a>
             <a href="/en/workshop">Live Workshop</a>
             <a href="https://www.etsy.com/shop/TreeTreeLab" target="_blank" rel="noopener noreferrer" className="site-nav__shop" aria-label="Shop: Tree Tree Lab on Etsy (opens in a new tab)">Shop<span aria-hidden="true">↗</span></a>
-            <a href="/" lang="zh-CN" className="site-nav__learn">中文</a>
+            <LangSwitch />
           </nav>
         </div>
       </header>
@@ -52,6 +53,7 @@ export default function EnLayout({ children }: { children: React.ReactNode }) {
           </div>
           <div className="site-footer__fine">
             <p>© {year} Tree Tree Academy</p>
+            <FooterLangPair />
           </div>
         </div>
       </footer>

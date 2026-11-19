@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { SocialLinks, ContactLink } from "./_site/Social";
+import { LangSwitch, FooterLangPair, LangBanner } from "./_site/LangSwitch";
 
 export const metadata: Metadata = {
   title: {
@@ -37,6 +38,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <LangBanner />
         <header className="site-header">
           <div className="site-header__inner">
             <a href="/" className="site-logo">
@@ -53,6 +55,7 @@ export default function RootLayout({
               <a href="/workshop">工作坊</a>
               <a href="/members" title="需要登录">会员独享<span className="nav-lock" aria-label="需要登录">🔒</span></a>
               <a href="https://www.etsy.com/shop/TreeTreeLab" target="_blank" rel="noopener noreferrer" className="site-nav__shop" aria-label="Shop：Tree Tree Lab（Etsy，新窗口打开）">Shop<span aria-hidden="true">↗</span></a>
+              <LangSwitch />
             </nav>
           </div>
         </header>
@@ -92,6 +95,7 @@ export default function RootLayout({
                 </a>
               </p>
               <p>© {new Date().getFullYear()} 树儿学院 Tree Tree Academy</p>
+              <FooterLangPair />
             </div>
           </div>
         </footer>
