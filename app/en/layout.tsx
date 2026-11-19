@@ -24,6 +24,7 @@ export default function EnLayout({ children }: { children: React.ReactNode }) {
           <nav className="site-nav" aria-label="Main">
             <a href="/en/start">Free Starter Kit</a>
             <a href="/en/workshop">Live Workshop</a>
+            <a href="https://www.etsy.com/shop/TreeTreeLab" target="_blank" rel="noopener noreferrer" className="site-nav__shop" aria-label="Shop: Tree Tree Lab on Etsy (opens in a new tab)">Shop<span aria-hidden="true">↗</span></a>
             <a href="/" lang="zh-CN" className="site-nav__learn">中文</a>
           </nav>
         </div>

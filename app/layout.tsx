@@ -51,9 +51,8 @@ export default function RootLayout({
             <nav className="site-nav" aria-label="主导航">
               <a href="/start">免费启动包</a>
               <a href="/workshop">工作坊</a>
-              <a href="/xiaoqun" title="需要登录">小群姐姐<span className="nav-lock" aria-label="需要登录">🔒</span></a>
-              <a href="/hanzi" title="需要登录">汉字学习<span className="nav-lock" aria-label="需要登录">🔒</span></a>
-              <a href="/reader" className="site-nav__learn" title="需要登录">树儿读读乐<span className="nav-lock" aria-label="需要登录">🔒</span></a>
+              <a href="/members" title="需要登录">会员独享<span className="nav-lock" aria-label="需要登录">🔒</span></a>
+              <a href="https://www.etsy.com/shop/TreeTreeLab" target="_blank" rel="noopener noreferrer" className="site-nav__shop" aria-label="Shop：Tree Tree Lab（Etsy，新窗口打开）">Shop<span aria-hidden="true">↗</span></a>
             </nav>
           </div>
         </header>
@@ -75,7 +74,7 @@ export default function RootLayout({
               <p><a href="/workshop">直播工作坊 · 等候名单</a></p>
             </div>
             <div>
-              <p className="site-footer__h">会员练习（需登录）</p>
+              <p className="site-footer__h"><a href="/members">会员独享</a>（需登录）</p>
               <p><a href="/xiaoqun">小群姐姐 · 听故事复述</a></p>
               <p><a href="/hanzi">汉字学习 · 午餐秘密游戏</a></p>
               <p><a href="/reader">树儿读读乐</a></p>
