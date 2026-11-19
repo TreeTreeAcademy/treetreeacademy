@@ -29,7 +29,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
       ) : (
         <>
           <h1>树儿学院 · 会员登录</h1>
-          <p className="lead">小群姐姐、汉字学习和树儿读读乐需要登录后查看。账号由树儿学院分配。</p>
+          <p className="lead">故事精听、汉字学习和中文共读AI陪读官需要登录后查看。账号由树儿学院分配。</p>
         </>
       )}
       <form method="post" action="/api/reader/login" className="card reader-login__form">

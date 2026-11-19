@@ -7,6 +7,7 @@ const PAIRS: [string, string][] = [
   ["/start", "/en/start"],
   ["/workshop", "/en/workshop"],
   ["/contact", "/en/contact"],
+  ["/members", "/en/members"],
 ];
 export const LANG_KEY = "tta-lang";
 const DISMISS_KEY = "tta-lang-banner-dismissed";

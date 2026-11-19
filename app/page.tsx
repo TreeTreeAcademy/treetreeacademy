@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import AboutJing from "./_site/AboutJing";
 import KitBlock from "./_site/KitBlock";
+import { MEMBERS_ZH } from "@/lib/site/members";
 import { Icon, StuckPoints, TreeSystem, DailyMoments } from "./_site/Visuals";
 import { PHOTOS, asset } from "@/lib/site/assets";
 import { WORKSHOP } from "@/lib/site/config";
@@ -107,9 +108,9 @@ export default function HomePage() {
           <p className="lp-eyebrow lp-center">会员练习园地</p>
           <h2 className="lp-h2 lp-center">我们家自己在用的练习</h2>
           <div className="lp-grid3">
-            <a className="lp-card2 lp-card2--link" href="/xiaoqun"><h3>🔒 小群姐姐 · 听故事复述</h3><p>工作日故事简报：听后问题 + 成人示范稿。</p><span className="lp-link">登录查看 →</span></a>
-            <a className="lp-card2 lp-card2--link" href="/hanzi"><h3>🔒 汉字学习 · 午餐秘密游戏</h3><p>30 天汉字游戏，每天 3–4 个字。</p><span className="lp-link">登录查看 →</span></a>
-            <a className="lp-card2 lp-card2--link" href="/reader"><h3>🔒 树儿读读乐</h3><p>分级阅读练习：读原文、点单词、复习。</p><span className="lp-link">登录查看 →</span></a>
+            {MEMBERS_ZH.map((x) => (
+              <a key={x.href} className="lp-card2 lp-card2--link" href={x.href}><h3>🔒 {x.t}</h3><p>{x.d}</p><span className="lp-link">登录查看 →</span></a>
+            ))}
           </div>
         </div>
       </section>

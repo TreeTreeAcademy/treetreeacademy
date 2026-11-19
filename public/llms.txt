@@ -13,5 +13,6 @@
 
 ## 会员练习园地（需登录）
 
-- [小群姐姐 · 听故事复述](https://treetreeacademy.com/xiaoqun): 工作日故事简报，听后问题与成人示范稿。
-- [汉字学习 · 午餐秘密游戏](https://treetreeacademy.com/hanzi): 30 天汉字游戏。
+- [故事精听](https://treetreeacademy.com/xiaoqun): 精选中国优质儿童音频故事，每天更新，提供故事简报、听后问题和示范跟讲。
+- [汉字学习](https://treetreeacademy.com/hanzi): 我们自己家用的汉字学习游戏，让汉字学习超越识字本身，融入生活、学以致用。
+- [中文共读AI陪读官](https://treetreeacademy.com/reader): 英文绘本拍照上传，自动生成对照的中文翻译，家长和孩子中文共读。

@@ -1214,3 +1214,10 @@ body:has(.en-section) > .site-footer { display: none; }
   .site-header .nav-lock { font-size: .65rem; }
   .site-header__inner { padding-left: 10px !important; padding-right: 10px !important; }
 }
+@media (max-width: 400px) {
+  .en-header .nav-long { display: none; }
+  .en-header .site-logo__full { height: 28px !important; }
+  .en-header .site-header__inner { padding-left: 10px !important; padding-right: 10px !important; }
+  .en-header .nav-lock { font-size: .65rem; }
+}
+@media (max-width: 400px) { .en-header .site-nav a { font-size: .72rem !important; padding: .3rem .18rem !important; } .en-header .site-nav a.site-nav__shop, .en-header .site-nav a.site-nav__lang { padding: .22rem .42rem !important; } }

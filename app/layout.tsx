@@ -78,22 +78,11 @@ export default function RootLayout({
             </div>
             <div>
               <p className="site-footer__h"><a href="/members">会员独享</a>（需登录）</p>
-              <p><a href="/xiaoqun">小群姐姐 · 听故事复述</a></p>
-              <p><a href="/hanzi">汉字学习 · 午餐秘密游戏</a></p>
-              <p><a href="/reader">树儿读读乐</a></p>
+              <p><a href="/xiaoqun">故事精听</a></p>
+              <p><a href="/hanzi">汉字学习</a></p>
+              <p><a href="/reader">中文共读AI陪读官</a></p>
             </div>
             <div className="site-footer__fine">
-              <p>
-                小群姐姐栏目内容整理自小群姐姐讲故事公众号，供亲子练习使用；故事版权归原作者与出版社。
-                复述方法框架参考「愿闻表达训练」思路（听后问题 · 阶段对照 · 示范跟讲）。
-              </p>
-              <p className="site-footer__shop">
-                {/* TODO: confirm Etsy URL — no live TreeTreeLab shop found; Pinkoi has https://www.pinkoi.com/store/treetreelab */}
-                <a href="https://www.etsy.com/shop/TreeTreeLab" target="_blank" rel="noopener noreferrer" className="shop-link">
-                  <img src="/tree-tree-lab.png" alt="" width={36} height={36} className="shop-link__logo" />
-                  <span>Tree Tree Lab</span>
-                </a>
-              </p>
               <p>© {new Date().getFullYear()} 树儿学院 Tree Tree Academy</p>
               <FooterLangPair />
             </div>
