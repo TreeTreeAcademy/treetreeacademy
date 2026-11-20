@@ -61,7 +61,7 @@ export default function EnStartPage() {
           <h2>About Jing</h2>
           <div className="st-about">
             {about && <img src={about} alt="Jing" width={96} height={96} loading="lazy" />}
-            <p>I&apos;m Jing — like jingle bell. I taught Chinese at a high school in China and then Mandarin at a university in the US. Now I&apos;m raising two bilingual kids, both fluent in English and Chinese — and I&apos;m sharing the system that works at home, one real moment at a time. <a href="/en/workshop#about">Read my full story →</a></p>
+            <p>I&apos;m Jing — like jingle bell. I taught Chinese at a top high school in Wuhan, then to American college students in Ohio. For the past twelve years I&apos;ve been watching how a language takes root in a family. Today I&apos;m a mom of two kids fluent in both English and Chinese — and you don&apos;t have to be fluent to start. I&apos;m sharing what actually works at home, one ordinary moment at a time. <a href="/en/workshop#about">Read my full story →</a></p>
           </div>
         </section>
 
