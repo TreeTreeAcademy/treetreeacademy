@@ -125,7 +125,22 @@ img {
   align-items: center;
 }
 
-.site-nav a {
+.site-header__end {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  min-width: 0;
+}
+
+.site-header__actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 0 0 auto;
+}
+
+.site-nav a,
+.site-header__actions a {
   text-decoration: none;
   font-size: 0.95rem;
   font-weight: 500;
@@ -135,7 +150,8 @@ img {
 }
 
 .site-nav a:hover,
-.site-nav a[aria-current="page"] {
+.site-nav a[aria-current="page"],
+.site-header__actions a:hover {
   color: var(--color-accent);
   background: var(--color-surface-soft);
 }
@@ -742,7 +758,8 @@ p {
 }
 /* keep header labels on one line (the extra 树儿读读乐 link made them wrap per character on phones) */
 .site-logo__zh,
-.site-nav a {
+.site-nav a,
+.site-header__actions a {
   white-space: nowrap;
 }
 @media (max-width: 480px) {
@@ -1003,15 +1020,7 @@ p {
 .en-subnav a:hover { color: var(--color-gold); }
 .en-subnav__label { color: var(--color-gold); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; font-size: .78rem; }
 .site-main:has(> .en-section > .lp-page) { max-width: none; padding: 0; }
-/* mobile nav: one tidy scrollable row instead of wrapping */
-@media (max-width: 560px) {
-  .site-header__inner { flex-wrap: nowrap; padding: 8px 14px; gap: 8px; }
-  .site-logo__full { height: 34px; }
-  .site-nav { width: auto; flex-wrap: nowrap; overflow-x: auto; white-space: nowrap; -webkit-overflow-scrolling: touch; scrollbar-width: none; justify-content: flex-start; min-width: 0; }
-  .site-nav::-webkit-scrollbar { display: none; }
-  .site-nav a { padding: 4px 6px; font-size: 0.85rem; flex: 0 0 auto; }
-  .site-logo { flex: 0 0 auto; }
-}
+/* mobile nav two-row layout is defined at the end of this file */
 /* /en pages: hide the Chinese root header/footer, show the English ones from app/en/layout.tsx */
 body:has(.en-section) > .site-header,
 body:has(.en-section) > .site-footer { display: none; }
@@ -1185,39 +1194,106 @@ body:has(.en-section) > .site-footer { display: none; }
 .mb-card { text-decoration: none !important; color: inherit !important; text-align: left; transition: transform .12s, box-shadow .12s; }
 .mb-card:hover { transform: translateY(-2px); box-shadow: 0 6px 18px #00000014; }
 .mb-card h3 { margin: 0 0 8px; color: var(--color-ink); }
-.site-nav a.site-nav__shop { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--color-forest); border-radius: 999px; }
-@media (max-width: 480px) {
-  .site-header__inner { gap: 6px; }
-  .site-logo__full { height: 32px !important; width: auto !important; }
-  .site-nav { gap: 0 !important; }
-  .site-nav a { font-size: .8rem !important; padding: .3rem .32rem !important; white-space: nowrap; }
-  .site-nav a.site-nav__shop span { display: none; }
-  .site-nav a.site-nav__shop, .site-nav a.site-nav__learn { padding: .25rem .55rem !important; }
-}
-@media (max-width: 400px) {
-  .en-header .site-nav a { font-size: .74rem !important; padding: .3rem .22rem !important; }
-  .en-header .site-nav a.site-nav__shop, .en-header .site-nav a.site-nav__learn { padding: .25rem .45rem !important; }
-}
+a.site-nav__shop { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--color-forest); border-radius: 999px; }
 /* language switch */
-.site-nav a.site-nav__lang { border-radius: 999px; background: var(--color-forest); color: #fff !important; font-weight: 700; padding: .35rem .8rem; }
-.site-nav a.site-nav__lang:hover { background: var(--color-forest-deep, #026b33); }
+a.site-nav__lang { border-radius: 999px; background: var(--color-forest); color: #fff !important; font-weight: 700; padding: .35rem .8rem; }
+a.site-nav__lang:hover { background: var(--color-forest-deep, #026b33); color: #fff !important; }
 .lang-pair { margin-top: .6rem; font-size: .9rem; }
 .lang-pair a[aria-current] { font-weight: 700; text-decoration: none; color: var(--color-ink); }
 .lang-banner { display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap; background: #fff6d6; border-bottom: 1px solid #f1e2a4; padding: 8px 44px 8px 16px; font-size: .92rem; position: relative; color: var(--color-ink); }
 .lang-banner a { font-weight: 700; color: var(--color-forest); }
 .lang-banner button { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); border: 0; background: transparent; font-size: 1.3rem; line-height: 1; cursor: pointer; min-width: 36px; min-height: 36px; color: var(--color-ink); }
-@media (max-width: 480px) { .site-nav a.site-nav__lang { padding: .25rem .55rem !important; } }
-@media (max-width: 400px) {
-  .site-header .site-logo__full { height: 28px !important; }
-  .site-header .site-nav a { font-size: .76rem !important; padding: .3rem .2rem !important; }
-  .site-header .site-nav a.site-nav__shop, .site-header .site-nav a.site-nav__lang { padding: .22rem .45rem !important; }
-  .site-header .nav-lock { font-size: .65rem; }
-  .site-header__inner { padding-left: 10px !important; padding-right: 10px !important; }
+
+/* Member cards: on mobile, stack title / description / link. Don't reuse the
+   icon-card 64px + text grid — these cards have no icon, so that grid squeezed
+   titles into a narrow column (one character per line, English titles overflowing). */
+@media (max-width: 760px) {
+  .vz-card.mb-card {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    text-align: left;
+    padding: 18px 18px 16px;
+  }
+  .vz-card.mb-card h3 {
+    margin: 0;
+    font-size: 1.15rem;
+    line-height: 1.4;
+    overflow-wrap: break-word;
+    word-break: normal;
+  }
+  .vz-card.mb-card p {
+    margin: 0;
+  }
+  .vz-card.mb-card .lp-link {
+    white-space: nowrap;
+    padding-top: 4px;
+  }
 }
-@media (max-width: 400px) {
-  .en-header .nav-long { display: none; }
-  .en-header .site-logo__full { height: 28px !important; }
-  .en-header .site-header__inner { padding-left: 10px !important; padding-right: 10px !important; }
-  .en-header .nav-lock { font-size: .65rem; }
+
+/* Mobile header: row 1 = logo + Shop + language toggle; row 2 = nav links.
+   Everything stays on screen; 768px+ stays the single-row desktop header. */
+@media (max-width: 767px) {
+  .site-header,
+  .site-header__inner,
+  .site-nav {
+    overflow: visible;
+  }
+  .site-header__inner {
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 10px;
+    padding: 8px 16px;
+  }
+  .site-logo {
+    margin-right: auto;
+    flex: 0 0 auto;
+  }
+  .site-logo__full {
+    height: 36px;
+    width: auto;
+  }
+  .site-header__end {
+    display: contents;
+  }
+  .site-header__actions {
+    gap: 8px;
+    flex: 0 0 auto;
+  }
+  .site-nav {
+    order: 3;
+    width: 100%;
+    flex-basis: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 2px 4px;
+    min-width: 0;
+    white-space: normal;
+  }
+  .site-nav a {
+    padding: 0.35rem 0.55rem;
+    font-size: 0.92rem;
+    flex: 0 0 auto;
+  }
+  a.site-nav__shop,
+  a.site-nav__lang {
+    padding: 0.28rem 0.75rem;
+    font-size: 0.88rem;
+  }
+  a.site-nav__shop span[aria-hidden] {
+    display: none;
+  }
+  .en-header .nav-long {
+    display: none;
+  }
 }
-@media (max-width: 400px) { .en-header .site-nav a { font-size: .72rem !important; padding: .3rem .18rem !important; } .en-header .site-nav a.site-nav__shop, .en-header .site-nav a.site-nav__lang { padding: .22rem .42rem !important; } }
+@media (max-width: 360px) {
+  .site-header__inner {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  .site-logo__full {
+    height: 32px;
+  }
+}

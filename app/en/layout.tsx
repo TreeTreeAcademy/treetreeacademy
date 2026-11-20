@@ -22,13 +22,17 @@ export default function EnLayout({ children }: { children: React.ReactNode }) {
           <a href="/en/start" className="site-logo">
             <img src="/brand/logo-header.webp" alt="Tree Tree Academy" width={150} height={56} className="site-logo__full" />
           </a>
-          <nav className="site-nav" aria-label="Main">
-            <a href="/en/start"><span className="nav-long">Free </span>Starter Kit</a>
-            <a href="/en/workshop"><span className="nav-long">Live </span>Workshop</a>
-            <a href="/en/members" title="Login required">Members<span className="nav-long"> only</span><span className="nav-lock" aria-label="Login required">🔒</span></a>
-            <a href="https://www.etsy.com/shop/TreeTreeLab" target="_blank" rel="noopener noreferrer" className="site-nav__shop" aria-label="Shop: Tree Tree Lab on Etsy (opens in a new tab)">Shop<span aria-hidden="true">↗</span></a>
-            <LangSwitch />
-          </nav>
+          <div className="site-header__end">
+            <nav className="site-nav" aria-label="Main">
+              <a href="/en/start"><span className="nav-long">Free </span>Starter Kit</a>
+              <a href="/en/workshop"><span className="nav-long">Live </span>Workshop</a>
+              <a href="/en/members" title="Login required">Members<span className="nav-long"> only</span><span className="nav-lock" aria-label="Login required">🔒</span></a>
+            </nav>
+            <div className="site-header__actions">
+              <a href="https://www.etsy.com/shop/TreeTreeLab" target="_blank" rel="noopener noreferrer" className="site-nav__shop" aria-label="Shop: Tree Tree Lab on Etsy (opens in a new tab)">Shop<span aria-hidden="true">↗</span></a>
+              <LangSwitch />
+            </div>
+          </div>
         </div>
       </header>
       {children}

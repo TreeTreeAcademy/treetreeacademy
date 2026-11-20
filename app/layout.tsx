@@ -50,13 +50,17 @@ export default function RootLayout({
                 className="site-logo__full"
               />
             </a>
-            <nav className="site-nav" aria-label="主导航">
-              <a href="/start">免费启动包</a>
-              <a href="/workshop">工作坊</a>
-              <a href="/members" title="需要登录">会员独享<span className="nav-lock" aria-label="需要登录">🔒</span></a>
-              <a href="https://www.etsy.com/shop/TreeTreeLab" target="_blank" rel="noopener noreferrer" className="site-nav__shop" aria-label="Shop：Tree Tree Lab（Etsy，新窗口打开）">Shop<span aria-hidden="true">↗</span></a>
-              <LangSwitch />
-            </nav>
+            <div className="site-header__end">
+              <nav className="site-nav" aria-label="主导航">
+                <a href="/start">免费启动包</a>
+                <a href="/workshop">工作坊</a>
+                <a href="/members" title="需要登录">会员独享<span className="nav-lock" aria-label="需要登录">🔒</span></a>
+              </nav>
+              <div className="site-header__actions">
+                <a href="https://www.etsy.com/shop/TreeTreeLab" target="_blank" rel="noopener noreferrer" className="site-nav__shop" aria-label="Shop：Tree Tree Lab（Etsy，新窗口打开）">Shop<span aria-hidden="true">↗</span></a>
+                <LangSwitch />
+              </div>
+            </div>
           </div>
         </header>
         <main className="site-main">{children}</main>
