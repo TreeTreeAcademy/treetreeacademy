@@ -83,7 +83,7 @@ export default function WorkshopPage() {
 
       <section className="lp-band">
         <div className="lp-wrap">
-          <AboutJing />
+          <AboutJing short />
         </div>
       </section>
 

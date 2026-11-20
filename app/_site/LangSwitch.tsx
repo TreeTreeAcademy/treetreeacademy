@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 // zh ↔ en page pairs. English "home" is /en/start (there is no /en homepage).
 const PAIRS: [string, string][] = [
+  ["/about", "/en/about"],
   ["/start", "/en/start"],
   ["/workshop", "/en/workshop"],
   ["/contact", "/en/contact"],

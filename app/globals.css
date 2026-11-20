@@ -1180,6 +1180,7 @@ body:has(.en-section) > .site-footer { display: none; }
 .vz-week__detail { display: block; font-weight: 400; font-size: .85rem; color: var(--color-text-muted); margin-top: 4px; line-height: 1.5; }
 .lp-check__rule { font-size: .88rem; color: var(--color-text-muted); margin: 8px 0 16px; }
 .st-about { display: flex; gap: 20px; align-items: center; background: #fff; border-radius: 20px; padding: 20px; }
+.st-about a { white-space: nowrap; }
 .st-about img { width: 96px; height: 96px; border-radius: 50%; object-fit: cover; flex: 0 0 96px; }
 .st-about p { margin: 0; }
 .st-next { background: #fff6d6; border-radius: 14px; padding: 14px 18px; }

@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import SignupForm from "../_site/SignupForm";
+import { ABOUT_SHORT } from "../_site/AboutJing";
 import { WeekTimeline } from "../_site/Visuals";
 import { PHOTOS, asset } from "@/lib/site/assets";
 
@@ -62,7 +63,7 @@ export default function StartPage() {
           <h2>关于晶晶</h2>
           <div className="st-about">
             {about && <img src={about} alt="晶晶" width={96} height={96} loading="lazy" />}
-            <p>我是晶晶。汉语言文学专业毕业后，我在武汉重点高中教语文，后来到俄亥俄州的大学教美国学生中文。过去十二年，我一直在看一门语言怎样在一群人身上扎根。现在，我是两个中英双语流利孩子的妈妈——中文在我们家不是一门课，是每天要说的话。 <a href="/#about">读我的完整故事 →</a></p>
+            <p>{ABOUT_SHORT.zh.hi}{ABOUT_SHORT.zh.body} <a href={ABOUT_SHORT.zh.moreHref}>{ABOUT_SHORT.zh.moreLabel}</a></p>
           </div>
         </section>
 

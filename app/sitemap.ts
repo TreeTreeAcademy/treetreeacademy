@@ -6,6 +6,14 @@ export default function sitemap(): MetadataRoute.Sitemap {
   const fixed: MetadataRoute.Sitemap = [
     { url: `${SITE_URL}/`, lastModified: now, changeFrequency: "weekly", priority: 1 },
     {
+      url: `${SITE_URL}/about`, lastModified: now, changeFrequency: "monthly", priority: 0.7,
+      alternates: { languages: { "zh-CN": `${SITE_URL}/about`, en: `${SITE_URL}/en/about` } },
+    },
+    {
+      url: `${SITE_URL}/en/about`, lastModified: now, changeFrequency: "monthly", priority: 0.7,
+      alternates: { languages: { "zh-CN": `${SITE_URL}/about`, en: `${SITE_URL}/en/about` } },
+    },
+    {
       url: `${SITE_URL}/start`, lastModified: now, changeFrequency: "monthly", priority: 0.9,
       alternates: { languages: { "zh-CN": `${SITE_URL}/start`, en: `${SITE_URL}/en/start` } },
     },

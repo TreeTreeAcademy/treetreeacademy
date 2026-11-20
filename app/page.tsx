@@ -89,7 +89,7 @@ export default function HomePage() {
       {/* 4. About */}
       <section className="lp-band lp-band--white">
         <div className="lp-wrap">
-          <AboutJing />
+          <AboutJing short />
         </div>
       </section>
 

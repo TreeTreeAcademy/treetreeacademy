@@ -76,6 +76,7 @@ export default function RootLayout({
             </div>
             <div>
               <p className="site-footer__h">开始</p>
+              <p><a href="/about">关于我</a></p>
               <p><a href="/start">免费 7 天启动包</a></p>
               <p><a href="/en/start">Free 7-Day Starter Kit (EN)</a></p>
               <p><a href="/workshop">直播工作坊 · 等候名单</a></p>

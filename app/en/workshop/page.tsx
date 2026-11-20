@@ -76,7 +76,7 @@ export default function EnWorkshopPage() {
 
       <section className="lp-band lp-band--white">
         <div className="lp-wrap">
-          <AboutJing lang="en" />
+          <AboutJing lang="en" short />
         </div>
       </section>
 

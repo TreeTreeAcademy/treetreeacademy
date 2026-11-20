@@ -48,6 +48,7 @@ export default function EnLayout({ children }: { children: React.ReactNode }) {
           </div>
           <div>
             <p className="site-footer__h">Get started</p>
+            <p><a href="/en/about">About Jing</a></p>
             <p><a href="/en/start">Free 7-Day Starter Kit</a></p>
             <p><a href="/en/workshop">Live workshop · Join the waitlist</a></p>
             <p><a href="/en/members">Members only 🔒</a></p>
