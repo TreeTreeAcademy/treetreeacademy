@@ -30,7 +30,7 @@ const C = {
     eyebrow: "关于我",
     hi: "关于我",
     intro: [
-      <p key="p1">汉语言文学专业本科毕业后，我进入武汉一所重点高中，成为一名语文老师。语文课上，我和一百六十多个孩子一起做两件事：学习如何聆听，听懂他人话里的意思与心事；也学习如何表达，用中文把自己的想法和见解讲得清楚、讲得有分量。</p>,
+      <p key="p1">汉语言文学专业本科毕业后，我进入武汉一所重点高中，成为一名语文老师。语文课上，我和一百三十多个孩子一起做两件事：学习如何聆听，听懂他人话里的意思与心事；也学习如何表达，用中文把自己的想法和见解讲得清楚、讲得有分量。</p>,
       <p key="p2">后来，我来到美国，在俄亥俄州的一所大学教美国学生中文。课堂上，我和几十名学生一起感受中文的词语与句式，也一起看见文化如何塑造一门语言的样子。</p>,
       <p key="p3">再后来，我的学生换成了一群在美国长大的孩子——有的从零起步，有的已在中高级。</p>,
       <p key="p4">过去十二年，我一直在看同一件事：一门语言怎样在某一群人身上扎根、抽枝，最后长成一棵遮荫的树。一边是把中文当&quot;语文&quot;来学的母语孩子，一边是把中文当外语来学的英语母语学习者——他们生长的路径全然不同。我看见后者为了真正习得这门语言，怎样与遗忘反复拉锯，怎样抵抗母语负迁移的拉扯：那些来自英语的语序、时态与表达习惯，总在不经意间改写他们的中文。我看见了这份艰辛。我也看见了另一种艰辛——在英语的大环境里，家长为了守住中文的一席之地，不惜重金、不辞路远，周末驱车送孩子去中文学校；而孩子面对被中文占去的周末，爱与怨交织。</p>,
@@ -58,7 +58,7 @@ const C = {
     eyebrow: "About Jing",
     hi: "I'm Jing — like Jinglebell.",
     intro: [
-      <p key="p1">I studied Chinese language and literature, and after graduation I taught Chinese at a top high school in Wuhan, China. In my classroom, more than 160 students and I worked on two things: learning to listen — really hearing what someone means, and what they feel underneath the words — and learning to speak, so they could say what they thought in Chinese, clearly and with substance.</p>,
+      <p key="p1">I studied Chinese language and literature, and after graduation I taught Chinese at a top high school in Wuhan, China. In my classroom, more than 130 students and I worked on two things: learning to listen — really hearing what someone means, and what they feel underneath the words — and learning to speak, so they could say what they thought in Chinese, clearly and with substance.</p>,
       <p key="p2">Then I moved to the US to teach Chinese at a university in Ohio. Same language, completely different classroom. Together we felt our way through Chinese words and sentence patterns, and saw how culture shapes a language from the inside.</p>,
       <p key="p3">After that, my students became children growing up in America — some starting from zero, some already intermediate or advanced.</p>,
       <p key="p4">For twelve years, I&apos;ve been watching the same thing: how a language takes root in a group of people, puts out branches, and grows into a tree that gives shade. On one side, children learning Chinese as their mother tongue, the way I did. On the other, English-speaking learners working to make it their own. The paths are nothing alike. I watched the second group fight forgetting, again and again, and fight the pull of their first language — English word order, English tenses, English habits quietly rewriting their Chinese. I saw how hard that is. And I know the worry that sits behind it: will speaking Mandarin at home hold their English back? It&apos;s the question I hear most.</p>,
