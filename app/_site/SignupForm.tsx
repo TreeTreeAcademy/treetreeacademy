@@ -1,4 +1,5 @@
 "use client";
+import { KIT_FORMS } from "@/lib/site/kit";
 import { useState } from "react";
 
 type Lang = "zh" | "en";
@@ -48,6 +49,25 @@ export default function SignupForm({
     const fd = new FormData(e.currentTarget);
     setState("sending");
     try {
+      // Kit: submit from the visitor's browser (server-side posts get quarantined by Kit's bot guard).
+      let kitStatus = "";
+      let guardUrl = "";
+      if (kit && !fd.get("website")) {
+        const email = String(fd.get("email") || "").trim();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email)) throw new Error(lang === "en" ? "Please enter a valid email address." : "请填写正确的邮箱。");
+        const body = new URLSearchParams({ email_address: email });
+        const nm = String(fd.get("name") || "").trim();
+        if (nm) body.set("fields[first_name]", nm);
+        try {
+          const kr = await fetch(`https://app.kit.com/forms/${KIT_FORMS[lang].id}/subscriptions`, {
+            method: "POST", headers: { Accept: "application/json" }, body,
+          });
+          const kj = (await kr.json().catch(() => ({}))) as { status?: string; url?: string };
+          kitStatus = kj.status || `http_${kr.status}`;
+          guardUrl = kj.status === "quarantined" && kj.url ? kj.url : "";
+        } catch { kitStatus = "network"; }
+        if (kitStatus === "failed") throw new Error(lang === "en" ? "Please enter a valid email address." : "请填写正确的邮箱。");
+      }
       const r = await fetch(kit ? "/api/kit-subscribe" : "/api/waitlist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -58,6 +78,7 @@ export default function SignupForm({
           source,
           result,
           lang,
+          ...(kit ? { kitClient: kitStatus || "skip" } : {}),
         }),
       });
       const j = await r.json().catch(() => ({}));
@@ -67,6 +88,7 @@ export default function SignupForm({
         if (kit) throw new Error(t.err);
         throw new Error(j.error || t.err);
       }
+      if (guardUrl) { window.location.href = guardUrl; return; }
       setState("done");
     } catch (err) {
       setMsg(err instanceof Error && !(lang === "en" && err.name === "TypeError") ? err.message : t.err);

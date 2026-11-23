@@ -42,7 +42,20 @@ export async function POST(req: Request) {
   const source = clip(b.source, 20);
   const result = clip(b.result, 20);
 
-  const kit = await kitSubscribe(KIT_FORMS[lang].id, email, name);
+  // New flow: the browser already submitted to Kit and reports the outcome; only back it up here.
+  const kitClient = clip(b.kitClient, 20);
+  const kit = kitClient ? `client_${kitClient}` : await kitSubscribe(KIT_FORMS[lang].id, email, name);
+  if (kitClient) {
+    if (kvConfig()) {
+      try {
+        await kv(["RPUSH", KEY, JSON.stringify({ at: new Date().toISOString(), name, email,
+          source: SOURCES.has(source) ? source : lang === "en" ? "kit-en" : "kit",
+          result: RESULTS.has(result) ? result : "", kit })]);
+        await kv(["LTRIM", KEY, -MAX, -1]);
+      } catch { /* backup only */ }
+    }
+    return json({ ok: true, kit });
+  }
 
   let saved = false;
   if (kvConfig()) {
