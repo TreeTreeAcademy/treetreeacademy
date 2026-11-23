@@ -61,6 +61,7 @@ export default function SignupForm({
         try {
           const kr = await fetch(`https://app.kit.com/forms/${KIT_FORMS[lang].id}/subscriptions`, {
             method: "POST", headers: { Accept: "application/json" }, body,
+            signal: typeof AbortSignal !== "undefined" && "timeout" in AbortSignal ? AbortSignal.timeout(10000) : undefined,
           });
           const kj = (await kr.json().catch(() => ({}))) as { status?: string; url?: string };
           kitStatus = kj.status || `http_${kr.status}`;

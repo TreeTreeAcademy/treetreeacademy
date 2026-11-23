@@ -48,10 +48,13 @@ export async function POST(req: Request) {
   if (kitClient) {
     if (kvConfig()) {
       try {
-        await kv(["RPUSH", KEY, JSON.stringify({ at: new Date().toISOString(), name, email,
+        const rec = JSON.stringify({ at: new Date().toISOString(), name, email,
           source: SOURCES.has(source) ? source : lang === "en" ? "kit-en" : "kit",
-          result: RESULTS.has(result) ? result : "", kit })]);
-        await kv(["LTRIM", KEY, -MAX, -1]);
+          result: RESULTS.has(result) ? result : "", kit });
+        for (let i = 0; i < 3; i++) {
+          try { await kv(["RPUSH", KEY, rec]); await kv(["LTRIM", KEY, -MAX, -1]); break; }
+          catch { await new Promise((r) => setTimeout(r, 400)); }
+        }
       } catch { /* backup only */ }
     }
     return json({ ok: true, kit });
